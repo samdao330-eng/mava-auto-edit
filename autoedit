@@ -1,0 +1,61 @@
+#!/bin/zsh
+# AUTO EDIT — one command for every channel. The channel is picked from the episode folder
+# (channels/<kênh>/channel.json "match"); AUTOEDIT_CHANNEL=<kênh> forces one.
+#
+#   ./autoedit setup                                  cài máy mới (ffmpeg, whisper.cpp, Python env, lệnh /edit /fix)
+#   ./autoedit edit    "<tập>" [--sections intro,1,quiz,2,outro] [--name N] [--region R]
+#                                                     dựng timeline EN  -> <tập>/<tên>.xml (Tripinsight: <tập>/EN)
+#   ./autoedit lang    "<tập>" ES|PT                  bản ES / PT từ bản EN -> <tập>/<LANG>/<tên>.xml
+#   ./autoedit rebuild "<tập>" [ES|PT]                dựng lại từ dữ liệu đã có (sau khi sửa tay)
+#   ./autoedit check   "<file.xml>" ...               kiểm tra XML trước khi import Premiere
+#   ./autoedit final   "<tập>" [--from N]             render MP4 4K (chỉ khi được yêu cầu)
+#   ./autoedit preview "<tập>"                        MP4 720p xem nhanh
+#   ./autoedit channel "<tập>"                        tập này thuộc kênh nào
+#   ./autoedit version
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+ENGINE="$ROOT/engine"
+VENV="${AUTOEDIT_VENV:-$HOME/.auto-edit-venv}"     # per machine, outside SAM (exFAT has no symlinks)
+PY="$VENV/bin/python"
+cmd="$1"; shift 2>/dev/null
+
+need_env() { [ -x "$PY" ] || { echo "Chưa cài máy này: chạy  \"$ROOT/autoedit\" setup"; exit 1; } }
+work_of() {  # <episode> [LANG] -> its .autoedit/_work
+  local ep="${1%/}" d
+  local -a dirs=("$ep/EN/.autoedit/_work" "$ep/.autoedit/_work")
+  [ -n "$2" ] && dirs=("$ep/$2/.autoedit/_work")
+  for d in "${dirs[@]}"; do [ -f "$d/episode.json" ] || [ -f "$d/edl.json" ] && { echo "$d"; return; }; done
+  echo "Chưa dựng tập này (không thấy .autoedit/_work trong $ep)" >&2; exit 1
+}
+
+case "$cmd" in
+  setup)
+    set -e
+    command -v brew >/dev/null || { echo "Cần cài Homebrew trước: https://brew.sh"; exit 1; }
+    for f in ffmpeg whisper-cpp libxml2; do brew list "$f" >/dev/null 2>&1 || brew install "$f"; done
+    MODEL="$ENGINE/models/ggml-base.en.bin"
+    [ -f "$MODEL" ] || { mkdir -p "$ENGINE/models"
+      curl -L -o "$MODEL" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin; }
+    "$PY" -c "import openpyxl, PIL" 2>/dev/null || { rm -rf "$VENV"; python3 -m venv "$VENV"; }
+    "$VENV/bin/pip" install -q --upgrade openpyxl pillow
+    # /edit and /fix also outside this folder (inside it Claude Code reads .claude/commands itself)
+    mkdir -p "$HOME/.claude/commands"
+    for f in "$ROOT/.claude/commands/"[!.]*.md; do
+      sed "s|{{AUTOEDIT}}|$ROOT|g" "$f" > "$HOME/.claude/commands/$(basename "$f")"
+    done
+    echo "Xong ($(cat "$ROOT/VERSION")). Dựng một tập:  \"$ROOT/autoedit\" edit \"/Volumes/SAM/0-<KÊNH>/<tập>\"  (hoặc /edit trong Claude Code)";;
+  edit)    need_env; exec "$PY" -I "$ENGINE/prepare-episode.py" "$@";;
+  lang)    need_env; exec "$PY" -I "$ENGINE/make-language.py" "$@";;
+  rebuild) need_env; W="$(work_of "$1" "$2")" || exit 1
+           if [ -n "$2" ]; then exec "$PY" -I "$ENGINE/make-language.py" "$1" "$2"
+           else exec "$PY" -I "$ENGINE/build-timeline.py" "$W"; fi;;
+  check)   need_env; exec "$PY" -I "$ROOT/tests/check-xml.py" "$@";;
+  final)   need_env; W="$(work_of "$1")" || exit 1; shift
+           NAME="$("$PY" -c 'import json,sys;print(json.load(open(sys.argv[1]))["name"])' "$W/episode.json")"
+           OUT="$("$PY" -c 'import json,sys;print(json.load(open(sys.argv[1]))["out_dir"])' "$W/episode.json")"
+           exec "$PY" -I "$ENGINE/render-final.py" "$W/edl.json" "$OUT/FINAL/$NAME.mp4" "$@";;
+  preview) need_env; W="$(work_of "$1")" || exit 1; OUT="$(dirname "$(dirname "$W")")"
+           exec "$PY" -I "$ENGINE/render-preview.py" "$W/edl.json" "$OUT/.autoedit/logo-overlay-3840.png" "$OUT/FINAL/preview-720p.mp4";;
+  channel) python3 -I "$ENGINE/channel.py" "$1";;
+  version) cat "$ROOT/VERSION";;
+  *)       sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1;;
+esac

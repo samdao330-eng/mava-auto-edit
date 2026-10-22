@@ -1,0 +1,53 @@
+{
+ "channel": "Earthcue",
+ "match": [
+  "/0-EARTHCUE/"
+ ],
+ "template": "/Volumes/SAM/0-SAM ASSET/0-EARTHCUE TEMPLATE",
+ "music_lib": "/Volumes/SAM/0-SAM ASSET/BACKGROUND MUSIC",
+ "logo_file": "Logo góc Earthcue.png",
+ "logo_box": [
+  3355,
+  62,
+  415,
+  1.0
+ ],
+ "ending_file": "ENDING EARTHCUE.mov",
+ "subscribe_file": "YSB THIRD 4K2.mov",
+ "lower_third_style": "plain",
+ "lower_third_seconds": 4.0,
+ "intro_title": false,
+ "subscribe_sound": true,
+ "subscribe_audio_file": "YSB THIRD 4K sfx.mov",
+ "cta": {
+  "file": "QR.mov",
+  "match": "QR code",
+  "lead": 4.5,
+  "motion": [
+   67,
+   0.175,
+   0.8657
+  ]
+ },
+ "languages": {
+  "ES": {
+   "column": "ES",
+   "logo_file": "logo GÓC Earthcue ES (Horizonte Azula).png",
+   "logo_box": [
+    3410,
+    48,
+    383,
+    1.0
+   ],
+   "lower_third": "plain",
+   "lower_third_seconds": 4.0,
+   "subscribe_file": "YSB THIRD 4K2.mov",
+   "ending_file": "ENDING EARTH ES.mov",
+   "ending_motion": [
+    200,
+    0.5,
+    0.5
+   ]
+  }
+ }
+}

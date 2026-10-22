@@ -1,0 +1,74 @@
+{
+ "channel": "Tripinsight",
+ "match": [
+  "/0-TRIPINSIGHT/"
+ ],
+ "template": "/Volumes/SAM/0-SAM ASSET/0-TRIPINSIGHT TEMPLATE",
+ "music_lib": "/Volumes/SAM/0-SAM ASSET/BACKGROUND MUSIC",
+ "logo_file": "tripinsight-logo.png",
+ "logo_box": [
+  3663,
+  25,
+  147,
+  1.0
+ ],
+ "ending_file": "4k end.mp4",
+ "ending_sound": true,
+ "subscribe_file": "SUB EN.mov",
+ "subscribe_sound": true,
+ "lower_third_style": "bracket",
+ "lower_third_seconds": 5.97,
+ "intro_title": false,
+ "quiz_fit": [
+  0.619,
+  1920,
+  1135,
+  1.19
+ ],
+ "cta": {
+  "file": "QR.mov",
+  "match": "QR code",
+  "lead": 4.5,
+  "motion": [
+   66.67,
+   0.175,
+   0.8657
+  ]
+ },
+ "languages": {
+  "ES": {
+   "column": "ES",
+   "logo_file": "logo trip insight es png.png",
+   "lower_third": "box",
+   "lower_third_seconds": 6.97,
+   "subscribe_file": null,
+   "ending_file": "ENDING ES NEW-001.mov",
+   "ending_motion": [
+    200,
+    0.5,
+    0.5
+   ],
+   "logo_box": [
+    3662,
+    26,
+    151,
+    1.0
+   ],
+   "subscribe_manual": true
+  },
+  "PT": {
+   "column": "PT",
+   "logo_file": "logo pt png.png",
+   "lower_third": "frame",
+   "lower_third_seconds": 6.31,
+   "subscribe_file": "SUB PT.mov",
+   "ending_file": "ending 4k PT.mov",
+   "logo_box": [
+    3663,
+    26,
+    147,
+    1.0
+   ]
+  }
+ }
+}

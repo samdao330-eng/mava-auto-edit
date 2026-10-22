@@ -1,0 +1,28 @@
+{
+ "channel": "Docs Untold",
+ "match": [
+  "/0-DOCSUNTOLD/"
+ ],
+ "template": "/Volumes/SAM/0-SAM ASSET/0-DOCS UNTOLD TEM/ASSET",
+ "music_lib": "/Volumes/SAM/0-SAM ASSET/BACKGROUND MUSIC",
+ "logo_file": "DOCS LOGO.png",
+ "logo_box": [
+  3555,
+  50,
+  235,
+  0.6
+ ],
+ "ending_file": "ENDING DOCS.mov",
+ "subscribe_file": "SUBSCRIBES.mov",
+ "lower_third_style": "pin",
+ "lower_third_seconds": 8.0,
+ "intro_title": true,
+ "intro_title_start": 0.5,
+ "intro_title_seconds": 6.0,
+ "subscribe_motion": [
+  70,
+  0.5,
+  0.8333
+ ],
+ "subscribe_sound": true
+}
