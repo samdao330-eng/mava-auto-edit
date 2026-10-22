@@ -31,7 +31,7 @@ case "$cmd" in
   setup)
     set -e
     command -v brew >/dev/null || { echo "Cần cài Homebrew trước: https://brew.sh"; exit 1; }
-    for f in ffmpeg whisper-cpp libxml2; do brew list "$f" >/dev/null 2>&1 || brew install "$f"; done
+    for f in ffmpeg whisper-cpp; do brew list "$f" >/dev/null 2>&1 || brew install "$f"; done
     MODEL="$ENGINE/models/ggml-base.en.bin"
     [ -f "$MODEL" ] || { mkdir -p "$ENGINE/models"
       curl -L -o "$MODEL" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin; }
