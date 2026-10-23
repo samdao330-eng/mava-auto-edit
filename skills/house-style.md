@@ -27,6 +27,8 @@ style: they live in `channels/<slug>/channel.json`.
   each gap (user-set 2026-10-19).
 - A row with footage but no text in the VO keeps its footage: it shares the previous line's time.
 - Stills (photos in VIDEO) are scaled to 4K and held for their line.
+- A section with no VO file of its own (the quiz, often read straight on at the end of the section before
+  it) is cut out of that section's last file, in the silence before its first word (user-set 2026-10-23).
 
 ## Transitions
 

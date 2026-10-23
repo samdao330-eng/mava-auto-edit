@@ -19,6 +19,12 @@
  "intro_title": false,
  "subscribe_sound": true,
  "subscribe_audio_file": "YSB THIRD 4K sfx.mov",
+ "quiz_fit": [
+  0.619,
+  1920,
+  1135,
+  1.19
+ ],
  "cta": {
   "file": "QR.mov",
   "match": "QR code",

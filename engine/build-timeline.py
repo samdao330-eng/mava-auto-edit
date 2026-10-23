@@ -37,6 +37,8 @@ LOGO = f"{GEN}/logo-overlay-3840.png"
 MUSIC_LIB = EP["music_lib"]                 # shared library, used after the episode's own music
 PLAN = [(sec["prefix"], sec["vo"]) for sec in EP["sections"]]
 KIND = {sec["prefix"]: sec["kind"] for sec in EP["sections"]}
+# a section read at the end of the last VO file of the section before it -> that section's prefix
+SHARED = {sec["prefix"]: sec.get("shared_with") for sec in EP["sections"] if sec.get("shared_with")}
 
 FPS = Fraction(30000, 1001)
 DISSOLVE = 25                 # frames between shots, matches reference (0.83s)
@@ -199,6 +201,32 @@ def sentence_pause(shot, vo_end):
 
 
 
+# ---------------------------------------------------------------- VO shared by two sections
+# The quiz is often not recorded on its own but read at the end of the section before it; prepare-episode.py
+# then gives both sections the same file. Each gets its own span of it, cut in the silence just before the
+# later section's first word.  span[(section prefix, VO number)] = (from, to) seconds inside the file.
+span = {}
+for prefix, parts in PLAN:
+    if prefix not in SHARED or not parts:
+        continue
+    n = parts[0]
+    said = list(whisper_words(n))
+    toks = [norm(w) for r in rows if (r["sec"] or "").startswith(prefix)
+            for w in str(r["en"]).split() if norm(w)]
+    blocks = [b for b in difflib.SequenceMatcher(None, toks, [w[0] for w in said],
+                                                 autojunk=False).get_matching_blocks() if b.size]
+    found = sum(b.size for b in blocks)
+    # the longest run of matching words says where this section's text sits in the file
+    anchor = max(blocks, key=lambda b: b.size, default=None)
+    i0 = max(0, anchor.b - anchor.a) if anchor else 0
+    if found < max(3, len(toks) // 2) or not i0:
+        sys.exit(f"no VO for {prefix.splitlines()[0]}: no file of its own, and its text is not at the end of "
+                 f"{vo_files[n]} either ({found} of {len(toks)} words) — is its VO file missing?")
+    cut = quiet_point(n, said[i0 - 1][2] + 0.2, said[i0][1] + 0.3)
+    span[(prefix, n)] = (cut, probe(os.path.join(AUDIO, vo_files[n]))["dur"])
+    span[(SHARED[prefix], n)] = (0.0, cut)
+    print(f"note: {vo_files[n]} holds {prefix.splitlines()[0]} from {cut:.1f}s")
+
 # Every script sentence gets its own slice of VO followed by SENTENCE_PAUSE seconds of
 # music + picture. Slices are cut in the silence between sentences.
 shots, vo_clips, titles, warnings = [], [], [], []
@@ -206,11 +234,12 @@ sfx_clips = []                                          # SFX are not part of th
 t = CH.get("intro_lead", 0.0)        # Chaseland: the intro VO starts after the opening title
 for sec_i, (prefix, parts) in enumerate(PLAN):
     lines = [r for r in rows if (r["sec"] or "").startswith(prefix)]
-    words, part_dur, part_path = [], {}, {}
+    words, part_from, part_dur, part_path = [], {}, {}, {}
     for k, n in enumerate(parts):
         part_path[k] = os.path.join(AUDIO, vo_files[n])
-        part_dur[k] = probe(part_path[k])["dur"]
-        words += [(w, k, s0, s1) for w, s0, s1 in whisper_words(n)]
+        # the whole file, or this section's span of one shared with the section before / after
+        part_from[k], part_dur[k] = span.get((prefix, n), (0.0, probe(part_path[k])["dur"]))
+        words += [(w, k, s0, s1) for w, s0, s1 in whisper_words(n) if part_from[k] <= s0 < part_dur[k]]
     # align script tokens to whisper tokens
     toks, owner = [], []
     for li, r in enumerate(lines):
@@ -259,7 +288,7 @@ for sec_i, (prefix, parts) in enumerate(PLAN):
         prev = groups[g_i - 1] if g_i else None
         nxt = groups[g_i + 1] if g_i + 1 < len(groups) else None
         s0 = (quiet_point(parts[part], last[prev[-1]][2] + 0.2, first[g[0]][2] + 0.3)
-              if prev and first[prev[-1]][1] == part and last[prev[-1]][1] == part else 0.0)
+              if prev and first[prev[-1]][1] == part and last[prev[-1]][1] == part else part_from[part])
         s1 = (quiet_point(parts[part], last[g[-1]][2] + 0.2, first[nxt[0]][2] + 0.3)
               if nxt and first[nxt[0]][1] == part and last[g[-1]][1] == part else part_dur[part])
         bounds.append((g, part, s0, s1))

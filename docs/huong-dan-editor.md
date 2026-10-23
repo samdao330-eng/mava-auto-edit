@@ -57,6 +57,9 @@ Ba điều hay sai:
 - **Sau tên section chỉ được có mã ngôn ngữ và số.** `8. Fayetteville en 1.mp3` là của section
   *Fayetteville*, không phải *Fayetteville National Cemetery*. Thêm chữ lạ vào là trượt.
 
+> Không có file `QUIZ …` riêng cũng được: nếu phần quiz được đọc liền ở cuối file lời thoại của đoạn
+> trước, công cụ tự cắt ra ở chỗ im lặng trước câu hỏi. Cùng cách đó cho mọi đoạn thiếu file riêng.
+
 ### Ba cái bẫy
 
 - **Không để file `.xlsx` thừa trong thư mục tập.** Sao lưu kịch bản thì đổi đuôi thành `.xlsx.bak`, nếu

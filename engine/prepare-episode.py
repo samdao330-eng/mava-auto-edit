@@ -200,6 +200,14 @@ for f in [f for f in audio if f not in claimed]:
             break
     else:
         print(f"warning: VO file not used: {f}")
+# a section with no VO file of its own (the quiz is often read at the end of the section before it,
+# not recorded separately): it shares that section's last file, and build-timeline.py splits the file
+# between them where this section's first word is spoken
+for i, p in enumerate(plan):
+    if not p["files"] and i and plan[i - 1]["files"]:
+        p["files"] = [plan[i - 1]["files"][-1]]
+        p["shared_with"] = plan[i - 1]["prefix"]
+        print(f'note: no VO file for {p["prefix"].splitlines()[0]} -> read from the end of {p["files"][0]}')
 if args.sections != "all":
     want = [w.strip().lower() for w in args.sections.split(",")]
     plan = [next(p for p in plan if p["key"] == w) for w in want]
@@ -208,11 +216,15 @@ if missing:
     sys.exit("no VO files found for: " + ", ".join(missing))
 
 # ---------------------------------------------------------------- 3. transcription
-index, n = [], 0
+index, n, numbered = [], 0, {}
 for p in plan:
     p["vo"] = []
     for f in p["files"]:
+        if f in numbered:                       # shared with the section before: transcribed once
+            p["vo"].append(numbered[f])
+            continue
         n += 1
+        numbered[f] = n
         p["vo"].append(n)
         index.append(f"{n:02d}\t{f}")
         wav, csv_base = os.path.join(work, "vo", f"{n:02d}.wav"), os.path.join(work, "vo", f"{n:02d}")
@@ -233,7 +245,8 @@ episode = dict(channel=CH["slug"], root=root, name=name, region=region, out_dir=
                music=[os.path.join(music_dir, f) for f in visible(os.listdir(music_dir))
                       if f.lower().endswith((".mp3", ".wav"))] if music_dir else [],
                title_vo=title_vo,
-               sections=[dict(prefix=p["prefix"], kind=p["kind"], vo=p["vo"]) for p in plan])
+               sections=[dict(prefix=p["prefix"], kind=p["kind"], vo=p["vo"],
+                              shared_with=p.get("shared_with")) for p in plan])
 json.dump(episode, open(os.path.join(work, "episode.json"), "w"), ensure_ascii=False, indent=1)
 print("sections:", ", ".join(f'{p["prefix"].split(chr(10))[0]} ({p["kind"]}, {len(p["vo"])} VO)' for p in plan))
 if not args.no_build:
