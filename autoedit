@@ -6,6 +6,7 @@
 #   ./autoedit edit    "<tập>" [--sections intro,1,quiz,2,outro] [--name N] [--region R]
 #                                                     dựng timeline EN  -> <tập>/<tên>.xml (Tripinsight: <tập>/EN)
 #   ./autoedit lang    "<tập>" ES|PT                  bản ES / PT từ bản EN -> <tập>/<LANG>/<tên>.xml
+#                   (hoặc: ./autoedit edit "<tập ES - vùng>" — chữ ES / PT trong tên là đủ để nhận)
 #   ./autoedit rebuild "<tập>" [ES|PT]                dựng lại từ dữ liệu đã có (sau khi sửa tay)
 #   ./autoedit check   "<file.xml>" ...               kiểm tra XML trước khi import Premiere
 #   ./autoedit final   "<tập>" [--from N]             render MP4 4K (chỉ khi được yêu cầu)
@@ -43,7 +44,16 @@ case "$cmd" in
       sed "s|{{AUTOEDIT}}|$ROOT|g" "$f" > "$HOME/.claude/commands/$(basename "$f")"
     done
     echo "Xong ($(cat "$ROOT/VERSION")). Dựng một tập:  \"$ROOT/autoedit\" edit \"/Volumes/SAM/0-<KÊNH>/<tập>\"  (hoặc /edit trong Claude Code)";;
-  edit)    need_env; exec "$PY" -I "$ENGINE/prepare-episode.py" "$@";;
+  edit)    need_env
+           # "<tập> ES - <vùng>" (chữ ES / PT trong tên) nghĩa là dựng bản ngôn ngữ đó từ bản EN
+           EP="${1%/}"; BASE="$(basename "$EP")"; DIR="$(dirname "$EP")"
+           for L in ES PT; do
+             STRIP="${BASE/ $L - / - }"; [ "$STRIP" = "$BASE" ] && STRIP="${BASE% $L}"
+             if [ "$STRIP" != "$BASE" ] && [ -d "$DIR/$STRIP" ]; then
+               shift; exec "$PY" -I "$ENGINE/make-language.py" "$DIR/$STRIP" "$L" "$@"
+             fi
+           done
+           exec "$PY" -I "$ENGINE/prepare-episode.py" "$@";;
   lang)    need_env; exec "$PY" -I "$ENGINE/make-language.py" "$@";;
   rebuild) need_env; W="$(work_of "$1" "$2")" || exit 1
            if [ -n "$2" ]; then exec "$PY" -I "$ENGINE/make-language.py" "$1" "$2"

@@ -27,4 +27,5 @@ of sections (`intro,1,quiz,2,3,outro`). No folder given: ask for it, do not gues
 
 7. **Report**: XML path, duration, shots / VO lines, warnings. Append to `logchat.md`.
 
-ES / PT versions: `language-version.md`, only when asked, after EN.
+ES / PT versions: `language-version.md`, only when asked, after EN. An episode name with ES / PT in it
+(`/edit "260414 Tripinsight ES - Colombia"`) is a language build, not a new edit: go there instead.

@@ -10,7 +10,7 @@ imports with File > Import, organised like the user's own projects:
 
 Usage: python export-premiere-xml.py <edl.json> <out.xml>
 """
-import json, os, re, subprocess, sys, urllib.parse
+import json, os, re, subprocess, sys, unicodedata, urllib.parse
 from xml.sax.saxutils import escape
 
 edl = json.load(open(sys.argv[1]))
@@ -65,7 +65,10 @@ def file_xml(path, fid, still):
                      "</channellabel></audiochannel><audiochannel><sourcechannel>2</sourcechannel>"
                      "<channellabel>right</channellabel></audiochannel>" if n_ch == 2 else "")
                   + "</audio>")
-    url = "file://localhost" + urllib.parse.quote(path)
+    # Premiere's FCP7 importer only takes %20: a path encoded any further (a comma, "&", brackets, or the
+    # combining accent macOS writes in file names) makes it refuse the whole file, silently. So the path
+    # goes in composed and with only the space escaped (user-set: found 2026-10-23).
+    url = "file://localhost" + urllib.parse.quote(unicodedata.normalize("NFC", path), safe="/,()&'!$+=@~[]^`{}|;?#")
     return (f'<file id="{fid}"><name>{escape(os.path.basename(path))}</name>'
             f"<pathurl>{escape(url)}</pathurl>{RATE}<duration>{n}</duration>"
             f"<timecode>{RATE}<string>00:00:00:00</string><frame>0</frame><displayformat>NDF</displayformat>"
@@ -212,6 +215,8 @@ for v in edl["vo"]:
     master(v["path"], "AUDIO")
 for m in edl["music"]:
     master(m["path"], "SOUND")
+for x in edl.get("sfx", []):
+    master(x["path"], "SOUND")
 for o in edl["overlays"]:
     master(o["path"], "ASSET")
     if o.get("audio"):
@@ -234,6 +239,22 @@ def section_name(k, sec, kind=""):
     if kind in ("intro", "outro") and "\n" in sec:   # heading is the section's pasted text: use its kind
         sec = kind.upper()
     return f"0. {sec}" if k == 0 else (f"{max_no + 1}. {sec}" if k == len(starts) - 1 else sec)
+
+
+def lane_split(spans):
+    """Spread (start, end, payload) over as few tracks as needed: xmeml rejects two clips overlapping on one
+    track (Premiere refuses the whole file), e.g. a Subscribe that runs into the next section's lower third.
+    The first lane is the usual track; the others go right above it."""
+    out = []
+    for item in sorted(spans, key=lambda x: x[0]):
+        lane = next((ln for ln in out if ln[-1][1] <= item[0]), None)
+        (lane.append(item) if lane else out.append([item]))
+    return out or [[]]
+
+
+def lanes(spans):
+    """lane_split(), keeping only the payloads."""
+    return [[o for _, _, o in ln] for ln in lane_split(spans)]
 
 
 sections, sec_xml = [], []
@@ -261,23 +282,23 @@ for k, a in enumerate(starts):
     name = section_name(k, shots[a].get("section", f"Section {k + 1}"), shots[a].get("kind", ""))
     sid = f"sequence-{k + 1}"
     sections.append((name, sid, S0, S1))
-    sec_xml.append(sequence(sid, name, S1 - S0, [v1], [a1, [], [], []]))   # A2-A4 empty for the editor's SFX
+    # A2 up: the editor's own SFX when there are any (make-language.py), else left empty for them
+    # (start, end) in sequence frames, cut at the section's end: a clip running past the end of its
+    # sequence makes Premiere refuse the whole file
+    sfx = [(fr(x["start"]) - S0, min(fr(x["start"] + x["dur"]), S1) - S0, x)
+           for x in edl.get("sfx", []) if S0 <= fr(x["start"]) < S1]
+    sfx = [t for t in sfx if t[1] > t[0]]
+    sfx_tracks = [[lambda ch, cid, links, b=b, e=e, x=x: clipitem(
+                       x.get("name") or os.path.basename(x["path"]), x["path"], b, e,
+                       fr(x.get("src_in", 0)), "audio", ch=ch, cid=cid, links=links) for b, e, x in ln]
+                  for ln in lane_split(sfx)]
+    sec_xml.append(sequence(sid, name, S1 - S0, [v1],
+                            [a1] + (sfx_tracks + [[], [], []])[:max(3, len(sfx_tracks))]))
 
 # ---------------------------------------------------------------- FINAL
 fv1 = [nest(n, sid, S0, S1) for n, sid, S0, S1 in sections]
 fa1 = [lambda ch, cid, links, n=n, sid=sid, S0=S0, S1=S1: nest(n, sid, S0, S1, "audio", ch, cid, links)
        for n, sid, S0, S1 in sections]
-def lanes(spans):
-    """Spread (start, end, overlay) over as few tracks as needed: xmeml rejects two clips overlapping on one
-    track (Premiere refuses the whole file), e.g. a Subscribe that runs into the next section's lower third.
-    The first lane is the usual track; the others go right above it."""
-    out = []
-    for st, en, o in sorted(spans, key=lambda x: x[0]):
-        lane = next((ln for ln in out if ln[-1][1] <= st), None)
-        (lane.append((st, en, o)) if lane else out.append([(st, en, o)]))
-    return [[o for _, _, o in ln] for ln in out] or [[]]
-
-
 ov_spans = [(fr(o["start"]), fr(o["start"] + o["dur"]), o) for o in edl["overlays"]]
 fv2 = [[clipitem(o["name"], o["path"], fr(o["start"]), fr(o["start"] + o["dur"]), 0) for o in ln]
        for ln in lanes(ov_spans)]

@@ -22,6 +22,9 @@ from fractions import Fraction
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import channel
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location("read_prproj", os.path.join(HERE, "read-prproj.py"))
+read_prproj = _ilu.module_from_spec(_spec); _spec.loader.exec_module(read_prproj)
 root, LANG = os.path.abspath(sys.argv[1].rstrip("/")), sys.argv[2].upper()
 CH = channel.load(root)
 opt = lambda name: sys.argv[sys.argv.index(name) + 1] if name in sys.argv else None   # --en-work / --out (tests)
@@ -76,14 +79,22 @@ ws = openpyxl.load_workbook(book, data_only=True)["Content"]
 rows = list(ws.iter_rows(values_only=True))
 col = {str(c or "").strip(): i for i, c in enumerate(rows[0])}
 c_en, c_lang = col.get("English", 2), col[LC.get("column", LANG)]
-lang_of = {}                                             # EN text (stripped) -> the language's text
+def head_key(s):
+    """A heading without its timestamp ("02:02 Fact") and without the number the engine gave it
+    ("1. Bentonville"), so the spreadsheet cell and the section it became are the same key."""
+    s = re.sub(r"^\d{1,2}:\d{2}(?::\d{2})?\s+", "", str(s).strip())
+    return re.sub(r"\s+", " ", re.sub(r"^\d+\.\s*", "", s)).strip().lower()
+
+
+lang_of, lang_by_head = {}, {}                           # EN text -> the language's text
 for r in rows[1:]:
     if r[c_en] and r[c_lang]:
         lang_of.setdefault(str(r[c_en]).strip(), str(r[c_lang]).strip())
+        lang_by_head.setdefault(head_key(r[c_en]), str(r[c_lang]).strip())
 
 sections = []                                            # EN order, with the language's heading
 for s in ep["sections"]:
-    head = lang_of.get(s["prefix"].strip(), s["prefix"])
+    head = lang_of.get(s["prefix"].strip()) or lang_by_head.get(head_key(s["prefix"])) or s["prefix"]
     m = re.match(r"(\d+)\.\s*(.*)", head)
     sections.append(dict(en=s["prefix"], kind=s["kind"], head=head,
                          num=int(m.group(1)) if m and s["kind"] == "location" else None,
@@ -127,7 +138,8 @@ def vo_for(s):
     elif s["kind"] == "quiz":                            # PT names it "1. quiz …"
         fs = [f for f in files if "quiz" in fold(f)]
     else:
-        fs = [f for f in files if fold(f).startswith(s["kind"])]
+        fs = ([f for f in files if fold(f).startswith(s["kind"])]
+              or [f for f in files if fold(f).startswith(fold(s["name"]))])
     return sorted(fs, key=part_no)
 
 
@@ -348,6 +360,48 @@ for p in songs:
     music.append(dict(path=p, start=mt, dur=use, lane=-2))
     mt += use
 
+# ---------------------------------------------------------------- the editor's SFX
+# The editor finishes the EN edit in Premiere and adds SFX there (A2-A4 of each section sequence, which
+# the engine leaves empty). Their project is read so the ES / PT edit keeps them: each SFX moves and
+# stretches with the section it sits in, the user-set rule (2026-10-23).
+def editor_sfx():
+    seen = lambda d: [p for p in glob.glob(os.path.join(d, "*.prproj"))
+                      if not os.path.basename(p).startswith("._")]
+    prprojs = sorted(seen(os.path.join(root, "EN")) or seen(root), key=os.path.getmtime, reverse=True)
+    if not prprojs:
+        return []                                        # no finished project: the edit carries no SFX
+    laid_out = [c["path"] for c in edl["vo"]] + [m["path"] for m in edl["music"]]
+    laid_out += [o["path"] for o in edl["overlays"]] + [o["audio"] for o in edl["overlays"] if o.get("audio")]
+    # everything in a VO folder is narration, SFX never: a take the EN edit did not use (an unused quiz
+    # line, a stray file) is still not sound to carry into another language
+    for d in [audio_dir] + [x for x in glob.glob(os.path.join(root, "EN", "AUDIO*"))
+                            + glob.glob(os.path.join(root, "AUDIO*")) if os.path.isdir(x)]:
+        for _, _, names in os.walk(d):
+            laid_out += names
+    found, missing = read_prproj.section_sfx(prprojs[0], root, [s["en"] for s in sections], laid_out,
+                                             also=[TEMPLATE, ep["music_lib"]])
+    if missing:
+        warnings.append(f"SFX bỏ qua (không có file dưới thư mục tập): {', '.join(missing[:6])}")
+    out = []
+    for sec in sections:
+        clips = found.get(sec["en"])
+        if not clips:
+            continue
+        en_len, l_len = sec["e"] - sec["b"], sec["le"] - sec["lb"]
+        ratio = (l_len / en_len) if en_len > 0 else 1.0
+        for c in sorted(clips, key=lambda c: (c["track"], c["start"])):
+            dur, left = c["dur"] * ratio, probe(c["path"])["dur"] - c["src_in"]
+            if dur > left + 0.04:                        # the source has no more sound to stretch into
+                warnings.append(f"SFX {c['name']} ở {sec['en'][:28]}: thiếu {dur - left:.1f}s, cắt ngắn")
+                dur = left
+            out.append(dict(path=c["path"], name=c["name"], track=c["track"],
+                            start=sec["lb"] + c["start"] * ratio, dur=dur, src_in=c["src_in"],
+                            section=sec["en"]))
+    return out
+
+
+sfx_clips = editor_sfx()
+
 # ---------------------------------------------------------------- write edl.json + Premiere XML
 for v in vo_clips:
     v.pop("new_file", None)
@@ -359,14 +413,15 @@ json.dump(dict(total_s=total / float(FPS),
                            dip=x["dip"], still=bool(x.get("still")), gap_after=x["gap_after"],
                            section=x["section"], kind=x["kind"]) for x in shots],
                dissolve=DISSOLVE, dip=DIP, dissolve_at=dissolve_at, part_dissolve=PART_DISSOLVE, overlays=overlays,
-               vo=vo_clips, music=music, sfx=[], titles=[], warnings=warnings, logo=logo,
+               vo=vo_clips, music=music, sfx=sfx_clips, titles=[], warnings=warnings, logo=logo,
                music_db=edl.get("music_db", -17), name=NAME),
           open(os.path.join(WORK, "edl.json"), "w"), ensure_ascii=False, indent=0)
 out_xml = os.path.join(OUT_DIR, NAME + ".xml")
 subprocess.run([sys.executable, "-I", os.path.join(HERE, "export-premiere-xml.py"), os.path.join(WORK, "edl.json"),
                 out_xml], check=True)
 m, sec = divmod(total / float(FPS), 60)
-print(f"{LANG}: {int(m)}:{sec:05.2f}, {len(shots)} shots, {len(vo_clips)} VO slices, {len(music)} music")
+print(f"{LANG}: {int(m)}:{sec:05.2f}, {len(shots)} shots, {len(vo_clips)} VO slices, "
+      f"{len(music)} music, {len(sfx_clips)} SFX")
 print("order:", ", ".join(s["head"].splitlines()[0][:30] for s in order))
 for w in warnings:
     print(w)
