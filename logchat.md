@@ -502,3 +502,11 @@ Nhật ký các lần làm việc. Append vào cuối, không ghi đè. Mỗi m�
 - **Kiểm thử:** `make test` 4/7 dựng xong, số liệu **giống hệt** trước khi sửa (ti 59.08 phút/494 shot; ti-ES 64:00.74/490/58 SFX; ti-PT 62:14.06/489/58 SFX; cl 57.39 phút/506 shot) -> 4 thay đổi engine không làm lệch tập cũ. 3 lỗi `docs`, `ec`, `ec-ES` vẫn là hỏng dữ liệu có sẵn, thông điệp không đổi (`15-1122932881`, `530-`).
 - **Deploy:** không. Chưa commit.
 - **Còn lại:** bản PT dài hơn EN 17 phút vì VO PT tổng 55.2 phút so với EN 38.0 phút (dài hơn 45 %) — bản dịch, không phải engine, user cần xem lại. `quiz.mp3` và `265-270.mp3` trong `AUDIO EN` vẫn không dùng (kịch bản không có section quiz); user chưa xác nhận là đúng hay thiếu. User chưa import thử bản ES Colombia (`TEST XML/ES SFX/`) để xác nhận SFX. `docs` + `ec` vẫn chờ thay kịch bản/footage.
+
+## 2026-10-23 12:25 — Dọn thư mục để giao cho editor khác, commit việc đang dở
+
+- **Yêu cầu:** hướng dẫn sử dụng; thư mục nặng 12 GB, bỏ thứ không liên quan, chỉ để tool để chuyển cho các editor khác; commit số thay đổi đang dở.
+- **Đã làm:** xoá `.test-output/` (12 GB — trong đó 6,9 GB chỉ là `ti-ES/.autoedit/ending.mov`: 15 giây 4K 60fps codec qtrle gần như không nén, `make-language.py:241`) và 709 file rác macOS `._*` (176 MB, mỗi file chiếm 256 KB vì ổ SAM là exFAT). 12 GB -> 211 MB. Commit 4 nhóm thay đổi có sẵn từ các phiên trước: khớp VO theo từ (`prepare-episode.py`), SFX từ `.prproj` sang bản ES/PT (`read-prproj.py` + `make-language.py` + `export-premiere-xml.py` + `autoedit` + 2 skill), 2 kiểm tra mới trong `check-xml.py`, logchat.
+- **Kiểm thử:** `./autoedit` chạy đủ lệnh sau khi dọn. Không chạy lại `make test` vì sẽ sinh lại 12 GB vừa xoá; 4 thay đổi này đã được `make test` xác nhận trong các phiên 2026-10-22 17:45 và 2026-10-23 11:30 (4/7 dựng xong, số liệu giống hệt; 3 lỗi `docs`, `ec`, `ec-ES` là hỏng dữ liệu có sẵn).
+- **Deploy:** không. Đã commit, **chưa push**.
+- **Còn lại:** chưa push lên GitHub; `ending.mov` qtrle nên đổi sang ProRes 4444 (vẫn có alpha, nhẹ ~10 lần) — user chưa quyết; rác `._*` sẽ mọc lại mỗi lần máy Mac đụng ổ exFAT, có thể thêm bước dọn vào `make test`; từng máy editor vẫn phải chạy `make setup`.
