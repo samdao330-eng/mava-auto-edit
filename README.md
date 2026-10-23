@@ -35,11 +35,14 @@ Kết quả nằm trong thư mục tập (Tripinsight: trong `EN/`):
   (mỗi phần một sequence, **FINAL** lồng các phần, có lower third, logo, nhạc). Nếu hỏi Link Media, chỉ tới `VIDEO`.
 - `MEDIA/` nhạc nền đã dùng · `.autoedit/` (ẩn) đồ hoạ tự tạo và dữ liệu trung gian.
 
+Editor mới nhận máy: đọc `docs/huong-dan-editor.md` (việc hằng ngày, không cần biết kỹ thuật).
+
 ## Thư mục
 
 | | |
 |---|---|
 | `AGENTS.md` | bộ định tuyến cho Claude / Codex: việc nào đọc hướng dẫn nào |
+| `docs/` | `huong-dan-editor.md`: hướng dẫn cho editor |
 | `skills/` | hướng dẫn từng việc: dựng tập, bản ES/PT, sửa, lỗi import XML, kiểu dựng, thêm kênh |
 | `channels/<kênh>/` | `channel.json` (asset, vị trí, thời lượng) + `NOTES.md` (đo từ tập nào, đặc điểm kịch bản) |
 | `engine/` | script Python, font, model whisper — dùng chung mọi kênh |
