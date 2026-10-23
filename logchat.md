@@ -510,3 +510,11 @@ Nhật ký các lần làm việc. Append vào cuối, không ghi đè. Mỗi m�
 - **Kiểm thử:** `./autoedit` chạy đủ lệnh sau khi dọn. Không chạy lại `make test` vì sẽ sinh lại 12 GB vừa xoá; 4 thay đổi này đã được `make test` xác nhận trong các phiên 2026-10-22 17:45 và 2026-10-23 11:30 (4/7 dựng xong, số liệu giống hệt; 3 lỗi `docs`, `ec`, `ec-ES` là hỏng dữ liệu có sẵn).
 - **Deploy:** không. Đã commit, **chưa push**.
 - **Còn lại:** chưa push lên GitHub; `ending.mov` qtrle nên đổi sang ProRes 4444 (vẫn có alpha, nhẹ ~10 lần) — user chưa quyết; rác `._*` sẽ mọc lại mỗi lần máy Mac đụng ổ exFAT, có thể thêm bước dọn vào `make test`; từng máy editor vẫn phải chạy `make setup`.
+
+## 2026-10-23 12:30 — Hướng dẫn cơ bản cho editor
+
+- **Yêu cầu:** làm một hướng dẫn cơ bản (cho các editor nhận bộ công cụ).
+- **Đã làm:** `docs/huong-dan-editor.md` — cài máy, chuẩn bị thư mục tập + cách đặt tên VO (kèm 3 bẫy rút từ tập Arkansas: `.xlsx` thừa, VO trong thư mục con, VO trùng tên), dựng, import Premiere, bản ES/PT (phải hoàn thiện EN trong Premiere trước vì SFX đọc từ `.prproj`; gain/fade không theo), sửa, bảng lỗi hay gặp, mục "không tự làm". Tên thư mục và thông điệp lỗi đọc thẳng từ engine. README trỏ sang. User không cần bản web, để file trong thư mục.
+- **Kiểm thử:** không có thay đổi code.
+- **Deploy:** không. Đã commit, **chưa push**.
+- **Còn lại:** chưa push; các việc còn lại của phiên 12:25 giữ nguyên.
