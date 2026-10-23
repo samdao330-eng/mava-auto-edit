@@ -518,3 +518,11 @@ Nhật ký các lần làm việc. Append vào cuối, không ghi đè. Mỗi m�
 - **Kiểm thử:** không có thay đổi code.
 - **Deploy:** không. Đã commit, **chưa push**.
 - **Còn lại:** chưa push; các việc còn lại của phiên 12:25 giữ nguyên.
+
+## 2026-10-23 12:40 — Push lên GitHub (repo mới mava-auto-edit)
+
+- **Yêu cầu:** push đầy đủ bản MAVA AUTO EDIT.
+- **Đã làm:** repo chưa có remote nào. Tài khoản `samdao330-eng` chỉ có `earthcue-auto-edit` (bản Earthcue cũ, lịch sử không liên quan) — user chọn tạo repo mới. `gh repo create mava-auto-edit --private --source=.`, push `main` (11 commit, 53 file). Dọn lại rác `._*` mọc trong object store trước khi push. Quét secret trong file tracked: không có.
+- **Kiểm thử:** `origin/main..HEAD` = 0; remote đếm đúng 53 blob; không có `.bin` trên remote (model whisper 141 MB bị gitignore, `make setup` tự tải).
+- **Deploy:** đã push https://github.com/samdao330-eng/mava-auto-edit (private).
+- **Còn lại:** repo `earthcue-auto-edit` giữ nguyên làm bản lưu, chưa archive; clone từ GitHub thì thiếu model whisper (phải `make setup`), copy thư mục từ ổ SAM thì có sẵn; `ending.mov` qtrle -> ProRes 4444 vẫn chưa quyết.
