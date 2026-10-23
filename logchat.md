@@ -443,3 +443,62 @@ Nhật ký các lần làm việc. Append vào cuối, không ghi đè. Mỗi m�
 - **Kiểm thử:** dựng lại Docs Patagonia, Earthcue Sierra Nevada (+ES), Tripinsight Colombia, Chaseland Australia bằng engine mới: edl.json giống hệt bộ cũ (0 khác biệt), `check` OK. Sau commit: Tripinsight ES/PT cũng giống hệt (7/7). Đã chạy `make setup`: /edit /fix toàn máy trỏ vào MAVA AUTO EDIT (bản cũ sao lưu).
 - **Deploy:** cài lên máy này (`make setup`), chưa cài máy editor.
 - **Còn lại:** `make setup` trên từng máy editor; thư mục `AUTO EDIT` cũ (4 bộ) đã chuyển vào Thùng rác của ổ SAM (2026-10-22, khôi phục được đến khi dọn thùng rác); cập nhật repo AI-Support-Editor; Docs Patagonia vẫn chờ kịch bản mới (`make test` báo lỗi tập này đến khi thay).
+
+## 2026-10-22 16:07 — Dựng Chaseland Australia (260822)
+
+- **Yêu cầu:** `/edit 260822 Chaseland - Australia TEST`.
+- **Đã làm:** `./autoedit edit "/Volumes/SAM/0-CHASELAND/260822 Chaseland - Australia"` — kênh tự nhận là chaseland; `.xlsx` nằm trong thư mục con `TEST/`, engine vẫn tìm thấy (quét đệ quy). Ra `260822 Chaseland - Australia.xml` ở gốc thư mục tập: 57:23, 506 shot (median 7.0s), 23 section, 52 VO + VO tiêu đề, 22 nhạc nền, 24 overlay.
+- **Kiểm thử:** `./autoedit check` → OK. 3 cảnh báo: dòng 68 (68-352267021) không có trong VO (dùng chung thời gian với dòng trước); 101-354761369 thiếu 5.0s (V1 trống 3.5s từ 11:09.0); 110-352464430 thiếu 8.6s (V1 trống 0.3s từ 12:16.3).
+- **Deploy:** không.
+- **Còn lại:** 2 chỗ V1 trống cần thay footage dài hơn hoặc bù clip; chưa render (không được yêu cầu).
+
+## 2026-10-22 16:45 — Chaseland Australia: Premiere không import được XML đầy đủ
+
+- **Yêu cầu:** XML dựng xong nhưng import vào Premiere không ra gì; sửa thẳng file lớn, không chia nhỏ.
+- **Đã làm:** dựng lại sạch (đổi tên `.autoedit` -> `.autoedit.bak`, sinh lại 24 graphics, nhận dạng lại VO) -> XML mới cùng kích thước 1.588.736 byte, `check` OK, 606 media đủ. Soi file: 0 clip chồng (quét cả 24 sequence, sort theo start), 0 id định nghĩa trùng, 0 tham chiếu id ngược, track FINAL chỉ 4 video/6 audio, diff chủng loại element + thuộc tính + giá trị giữa file to và file nhỏ chạy được -> giống hệt, không có cấu trúc nào riêng ở file to. Giải nén `.prproj` của editor: sau khi import, project **không có thêm bin hay sequence nào** (chỉ 1 item `ending` của template) -> Premiere không nuốt một phần, cũng không treo. Loại trừ: Premiere 2026 vẫn còn bộ nhập FCP7 XML (chuỗi `xmeml` trong app), không có crash report (4 envelope Sentry hôm nay đều `status: ok`), đọc metadata 606 media chỉ ~41s nên không phải chờ lâu.
+- **Kiểm thử:** `./autoedit check` OK. File nhỏ (3 sequence, 45 media) import được; file đầy đủ (24 sequence, 606 media) không. Biến duy nhất còn lại là quy mô.
+- **Lỗi engine phát hiện thêm:** `--sections` cắt bớt section thì sinh clip chồng nhau ở track A1/A2 (VO section sau tràn vào section trước) — `check` bắt được; chỉ ảnh hưởng chế độ cắt section, bản đầy đủ không dính. `--sections intro` (không có section location nào) thì `build-timeline.py:534` crash `min() arg is an empty sequence`.
+- **Deploy:** không.
+- **Còn lại:** chưa biết ngưỡng Premiere gãy (cần import thử bản 23 / 13 / 11 sequence để khoanh); `.autoedit.bak` 1,2 GB chưa xoá; 2 chỗ V1 trống (11:09.0 và 12:16.3) chưa xử lý.
+
+## 2026-10-22 17:45 — Dựng Chaseland Sweden (260810) + sửa khớp tên có dấu
+
+- **Yêu cầu:** `/edit 260810 Chaseland - Sweden`.
+- **Đã làm:** nguyên liệu nằm ở `/Volumes/SAM/0-CHASELAND/TEST/260810 Chaseland - Sweden` (thư mục tập cùng tên ở gốc chỉ là project cũ đã dựng xong, không có VIDEO/AUDIO); chờ user copy `.xlsx` vào. Build lần 1 dừng: 8 section có dấu (Öresund Bridge, Öland Island, Malmö, Mölndal, Borås, Vittsjö, Åre, Linköping Castle) không khớp tên file VO viết không dấu ("11. Malmo 1.mp3") — `fold()` trong `engine/prepare-episode.py` chỉ hạ chữ thường, không bỏ dấu, và macOS lưu tên file dạng NFD nên cả "Åre" cũng trượt. Sửa `fold()`: chuẩn hoá NFKD rồi bỏ ký tự dấu (thêm `import unicodedata`). Build lại ra `260810 Chaseland - Sweden.xml`: 75:30, 585 shot, 27 section (INTRO, FACTS, 24 địa điểm, OUTRO), 74 VO + `Sweden.mp3` (giọng đọc tên vùng trên title), nhạc copy vào `MEDIA/`.
+- **Kiểm thử:** `./autoedit check` → OK. 2 cảnh báo footage ngắn hơn lời: `58-354432113` V1 trống 0.2s từ 7:46.6; `93-76ZTBT3` V1 trống 3.9s từ 12:02.1. `make test` 4/7 dựng xong (ti, ti-ES, ti-PT, cl — cl là Chaseland Australia, `check` OK); 3 lỗi **có sẵn, không do thay đổi này**: docs thiếu footage `15-1122932881` trong VIDEO (chỉ có `15-402763043.mov`), ec có ô `File name EN` hỏng `530-`, ec-ES kéo theo ec. Xác nhận bằng cách `git stash` rồi dựng lại Earthcue trên engine gốc: lỗi `530-` y hệt.
+- **Deploy:** không. Chưa commit.
+- **Còn lại:** 2 chỗ V1 trống (7:46.6 và 12:02.1) chờ user xử trong Premiere; user chưa báo import được chưa; Chaseland chưa có cấu hình `languages` nên chưa làm bản ES được (thiếu `ES/AUDIO ES` + asset logo/ending/subscribe ES); 2 tập tham chiếu docs & ec vẫn hỏng dữ liệu, `make test` còn đỏ đến khi thay kịch bản/footage.
+
+## 2026-10-23 09:45 — Bản ES/PT giữ SFX của editor, nhận kênh ngôn ngữ qua tên tập
+
+- **Yêu cầu:** phái sinh ES/PT phải lấy từ project Premiere đã hoàn thiện (editor đã thêm SFX) chứ không dựng lại từ `edl.json`; cú pháp `/edit "260414 Tripinsight ES - Colombia"` (chữ ES/PT trong tên là đủ để nhận). User chốt 4 điểm: đọc thẳng `.prproj`; audio dài hơn footage thì giữ nguyên chỉ cảnh báo (không đổi thuật toán co giãn); SFX giãn theo tỷ lệ của cả section; giữ cả cơ chế cũ.
+- **Đã làm:**
+  - Mới `engine/read-prproj.py`: giải nén `.prproj` (gzip XML), đi `Sequence -> TrackGroups -> Track -> AudioClipTrack -> ClipItems/TrackItems -> AudioClipTrackItem` lấy `Start`/`End` (ticks, `Start` bị lược khi = 0), `SubClip -> Name` và `Clip -> InPoint`. Chỉ đọc section sequence (khớp tên sau khi bỏ số đầu), bỏ clip là VO/nhạc (danh sách engine tự rải + clip gắn thẻ Essential Sound `music`). Đường dẫn trong `.prproj` trỏ về máy editor (`/Volumes/CHAOSWORK 1/...`) nên tìm file theo tên dưới thư mục tập, template kênh, thư viện nhạc.
+  - `engine/make-language.py`: đọc `.prproj` mới nhất ở `<tập>/EN` (hoặc gốc tập), mỗi SFX dịch + giãn theo tỷ lệ `(le-lb)/(e-b)` của section nó nằm trong, giữ `src_in`; nguồn không đủ dài thì cắt ngắn + cảnh báo. Không có `.prproj` thì `sfx=[]` như cũ.
+  - `engine/export-premiere-xml.py`: section sequence ghi SFX vào A2 trở lên (chỗ vẫn để trống sẵn), dùng `lanes()` (chuyển lên trước) để không clip nào chồng nhau; thêm master clip cho SFX. Gain/fade/effect của clip không mang theo.
+  - `autoedit edit`: tên có ` ES - ` / ` PT - ` (hoặc kết thúc bằng ES/PT) và thư mục gốc tồn tại thì chuyển sang `make-language.py`.
+  - Sửa lỗi dấu thứ hai: `.prproj` lưu tên composed còn macOS lưu decomposed nên `San Andrés`, `Jardín` lọt danh sách loại trừ -> `_fold()` trong `read-prproj.py` bỏ dấu (NFKD).
+  - Cập nhật `skills/language-version.md`, `skills/edit-episode.md`.
+- **Kiểm thử:** Colombia ES 64:00, 490 shot, 58 SFX; PT 62:14, 489 shot, 58 SFX; `check` OK cả hai. SFX bám đúng section kể cả khi đổi thứ tự (EN `9. Providencia Islands` -> ES `19. Isla de Providencia`). 4 cảnh báo nguồn thiếu 0.2-1.6s đã cắt ngắn. `make test` 4/7 dựng xong (ti, ti-ES, ti-PT, cl) — y hệt trước khi sửa; 3 lỗi `docs`, `ec`, `ec-ES` vẫn là hỏng dữ liệu có sẵn (`FileNotFoundError` footage), không đổi.
+- **Deploy:** không. Chưa commit.
+- **Còn lại:** chưa thử cơ chế mới trên Earthcue ES (tập tham chiếu `ec` đang hỏng dữ liệu); chưa có tập Chaseland nào dùng ES/PT; gain/fade của SFX không mang theo, editor phải chỉnh lại nếu cần; `docs` + `ec` vẫn chờ thay kịch bản/footage.
+
+## 2026-10-23 11:30 — Dựng Tripinsight Arkansas EN + PT, 4 lỗi engine lộ ra từ tập này
+
+- **Yêu cầu:** `/edit 260612 Tripinsight PT - Arkansas` — tập đầu tiên chạy thật cơ chế phái sinh mới.
+- **Dữ liệu phải sửa trước khi dựng được (đều do user quyết):**
+  - 16 VO EN còn nằm trong `AUDIO EN/drive-download-.../`, engine chỉ đọc thư mục gốc -> copy lên (`cp -n`, bản trong thư mục zip vẫn còn).
+  - 2 cặp VO trùng tên khác md5 (`2. Little Rock en 1`, `7. Ozark Mountains en 3`): user chọn bản `(1)`; bản kia chuyển sang `AUDIO EN/_khong dung/`.
+  - Dòng 136 `.xlsx` trỏ footage `126-759350774`, trong VIDEO là `126-759351489.jpeg` -> sửa thẳng trong zip của xlsx (thay 1 chuỗi trong `sharedStrings.xml` rồi nén lại, không dùng openpyxl ghi đè nên drawing/style còn nguyên). Sao lưu `… (truoc khi sua 261023).xlsx.bak`.
+  - **Bẫy:** sao lưu để đuôi `.xlsx` trong thư mục tập thì engine quét trúng nó trước (`sorted(glob('**/*.xlsx'))`, dấu `(` < dấu `.`) -> dựng lại vẫn ra lỗi cũ. Đổi đuôi `.xlsx.bak`. Không bao giờ để file `.xlsx` thừa trong thư mục tập.
+  - 2 section lệch số giữa cột PT và tên file VO PT (Mirror Lake 16 vs 23, Petit Jean 20 vs 22): user chọn theo kịch bản -> đổi tên 3 file VO PT.
+- **Lỗi engine sửa trong phiên:**
+  - `prepare-episode.py` `named()`: khớp tên VO với section theo *từ*, bỏ dấu và dấu câu, và sau tên section chỉ được còn mã ngôn ngữ + số. Trước đó chỉ cần là tiền tố nên `Fayetteville` ăn luôn số 16 của `Fayetteville National Cemetery` (hai section dùng chung VO, `8. Fayetteville en *.mp3` bỏ không); `Devil's Den` không khớp `5. Devil_s Den …`.
+  - `prepare-episode.py`: ô `File name EN` chỉ có dấu câu (`-`) coi như ô trống -> dòng tiêu đề `08:50 Little Rock` mới được nhận là tiêu đề, trước đó mất hẳn section này.
+  - `make-language.py` `head_key()`: tra tiêu đề EN -> ES/PT bằng khoá đã bỏ timestamp và bỏ số engine tự thêm (vẫn thử khớp nguyên văn trước). **Lỗi nặng nhất**: tiêu đề EN Tripinsight giờ có timestamp (`02:02 Fact`) nên tra trượt hết, bản ngôn ngữ lấy số thứ tự EN thay vì số PT — Crystal Bridges (EN 4 / PT 7) sẽ nhận lồng tiếng của Ozark Mountains, im lặng không cảnh báo. Colombia không dính vì tiêu đề EN không có timestamp.
+  - `make-language.py` `vo_for()`: VO của section story được phép đặt theo tên section (`Fato PT 1.mp3`), không bắt buộc `STORY`.
+  - `read-prproj.py` + `make-language.py`: mọi file nằm trong thư mục VO đều là lời thoại, không bao giờ là SFX (trước chỉ loại file bản EN *có dùng*, nên `quiz.mp3` và `265-270.mp3` lọt vào bản PT thành SFX tiếng Anh ở phút 5.5 và 51). Bỏ qua cả hậu tố `(n)` khi so tên.
+- **Kết quả:** EN 70:21, 487 shot, 397 câu VO, 24 section. PT 87:22, 486 shot, 397 câu, 34 nhạc, 49 SFX. `check` OK cả hai. Thứ tự PT đúng theo kịch bản.
+- **Kiểm thử:** `make test` 4/7 dựng xong, số liệu **giống hệt** trước khi sửa (ti 59.08 phút/494 shot; ti-ES 64:00.74/490/58 SFX; ti-PT 62:14.06/489/58 SFX; cl 57.39 phút/506 shot) -> 4 thay đổi engine không làm lệch tập cũ. 3 lỗi `docs`, `ec`, `ec-ES` vẫn là hỏng dữ liệu có sẵn, thông điệp không đổi (`15-1122932881`, `530-`).
+- **Deploy:** không. Chưa commit.
+- **Còn lại:** bản PT dài hơn EN 17 phút vì VO PT tổng 55.2 phút so với EN 38.0 phút (dài hơn 45 %) — bản dịch, không phải engine, user cần xem lại. `quiz.mp3` và `265-270.mp3` trong `AUDIO EN` vẫn không dùng (kịch bản không có section quiz); user chưa xác nhận là đúng hay thiếu. User chưa import thử bản ES Colombia (`TEST XML/ES SFX/`) để xác nhận SFX. `docs` + `ec` vẫn chờ thay kịch bản/footage.
