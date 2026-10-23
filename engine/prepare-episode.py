@@ -15,7 +15,7 @@ Episode folder layout (as used by the channels):
   {INTRO .. 1|2, STORY .. 1|2|3, QUIZ .., 1. <Place> EN 1|2|3, OUTRO ..}.mp3,
   episode music in <root>/Epidemic Sound/Music or <root>/SOUND/Music (optional)
 """
-import argparse, glob, json, os, re, subprocess, sys
+import argparse, glob, json, os, re, subprocess, sys, unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODEL = os.path.join(HERE, "models", "ggml-base.en.bin")
@@ -77,6 +77,8 @@ for r in ws.iter_rows(min_row=2, values_only=True):
     if en is None and n is None:
         continue
     f = str(r[c_file] or "").strip()
+    if not re.search(r"[A-Za-z0-9]", f):                 # "-" and the like mean the cell is empty
+        f = ""
     if n is None and en and not f:
         text = str(en).strip()
         if is_sentence(text) and rows and rows[-1]["sec"] == sec:
@@ -114,12 +116,26 @@ audio =[f for f in visible(os.listdir(audio_dir)) if f.lower().endswith((".mp3",
 
 
 def fold(s):
+    """Lowercase, single-spaced, without accents: the script says "Malmö", the VO file is "11. Malmo 1.mp3"."""
+    s = "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
     return re.sub(r"\s+", " ", s).strip().lower()
 
 
+LANG_TAGS = {"en", "es", "pt", "vn", "fr", "ger", "india"}
+
+
+def name_words(s):
+    """The name's words, accents and punctuation aside: the script writes "Devil's Den", the file "Devil_s Den"."""
+    return [w for w in re.split(r"[^a-z0-9]+", fold(re.sub(r"\.\w+$", "", s))) if w]
+
+
 def named(f, title):
-    """VO file f is named after the section title (its number / "0." prefix and part number aside)."""
-    return re.match(rf"{re.escape(fold(title))}(\s|\d|\.|$)", fold(re.sub(r"^\d+\.\s*", "", f))) is not None
+    """VO file f is named after the section title: the same words, then at most a language tag and a part
+    number ("1. Sydney Harbour 1.mp3", "Devil_s Den State Park en 2.mp3"). The file's own "5. " prefix is
+    dropped first. Anything else after the title is a different section, so "16. Fayetteville National
+    Cemetery en 1.mp3" is not the VO of "Fayetteville"."""
+    fw, tw = name_words(re.sub(r"^\d+\.\s*", "", f)), name_words(title)
+    return bool(tw) and fw[:len(tw)] == tw and all(w in LANG_TAGS or w.isdigit() for w in fw[len(tw):])
 
 
 # a location heading without its number (Chaseland: "Sydney Harbour") takes the number of its VO files
