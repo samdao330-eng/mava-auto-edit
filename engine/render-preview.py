@@ -49,11 +49,14 @@ cmd = ["ffmpeg", "-v", "error", "-y"]
 for p in segs:
     cmd += ["-i", p]
 n = len(segs)
-cmd += ["-loop", "1", "-framerate", FPS, "-i", logo]
+if not os.path.exists(logo):                          # a channel without a corner logo: an empty frame
+    cmd += ["-f", "lavfi", "-i", "color=c=black@0:s=16x16,format=rgba"]
+else:
+    cmd += ["-loop", "1", "-framerate", FPS, "-i", logo]
 idx_logo = n
 ov = edl["overlays"]
 for o in ov:
-    cmd += ["-i", o["path"]]
+    cmd += (["-loop", "1", "-framerate", FPS, "-t", f"{float(o['dur']):.3f}"] if o.get("still") else []) + ["-i", o["path"]]
 for p, _, du in cards:
     cmd += ["-loop", "1", "-framerate", FPS, "-t", f"{du:.3f}", "-i", p]
 # audio clips: (input index, start, dur, gain dB, fade). Each separate file gets its own input.

@@ -33,7 +33,7 @@ TEMPLATE = EP["template"]
 OUT_DIR = EP["out_dir"]
 MEDIA = f"{OUT_DIR}/MEDIA"                  # background music copied from the library
 GEN = f"{OUT_DIR}/.autoedit"                # graphics made for this episode (hidden in Finder)
-LOGO = f"{GEN}/logo-overlay-3840.png"
+LOGO = f"{GEN}/logo-overlay-3840.png" if CH.get("logo_file") else None   # World Unpaved has no corner logo
 MUSIC_LIB = EP["music_lib"]                 # shared library, used after the episode's own music
 PLAN = [(sec["prefix"], sec["vo"]) for sec in EP["sections"]]
 KIND = {sec["prefix"]: sec["kind"] for sec in EP["sections"]}
@@ -292,12 +292,21 @@ for sec_i, (prefix, parts) in enumerate(PLAN):
         s1 = (quiet_point(parts[part], last[g[-1]][2] + 0.2, first[nxt[0]][2] + 0.3)
               if nxt and first[nxt[0]][1] == part and last[g[-1]][1] == part else part_dur[part])
         bounds.append((g, part, s0, s1))
+    # World Unpaved: the footage-only lines before the episode's first VO play on their own, each
+    # channel.json "cold_open_shot" seconds, and the VO starts after them
+    cold = []
+    if sec_i == 0 and CH.get("cold_open_shot") and spoken:
+        cold = [li for li in extras_after.get(spoken[0], []) if li < spoken[0]]
+        extras_after[spoken[0]] = [li for li in extras_after[spoken[0]] if li not in cold]
+        for k, li in enumerate(cold):
+            shots.append(dict(start=t + k * CH["cold_open_shot"], line=lines[li], section=prefix, part_start=False))
+        t += len(cold) * CH["cold_open_shot"] + (CUT_LEAD if cold else 0)
     sec_start = t
     for g_i, (g, part, s0, s1) in enumerate(bounds):
         dur = s1 - s0
         vo_clips.append(dict(path=part_path[part], start=t, dur=dur, src_in=s0))
         for j, li in enumerate(g):
-            if sec_i == 0 and g_i == 0 and j == 0:
+            if sec_i == 0 and g_i == 0 and j == 0 and not cold:
                 cut = 0.0
             elif j == 0:
                 cut = t - CUT_LEAD
@@ -503,14 +512,15 @@ for c in music:
     aid = asset(c["path"], "audio")
     connect(c["start"], lambda off, aid=aid, c=c: f'<asset-clip ref="{aid}" lane="{c["lane"]}" offset="{off}" '
             f'name="Music" start="0s" duration="{ts(frames(c["dur"]))}" role="music">{vol(MUSIC_DB)}</asset-clip>')
-if not os.path.exists(LOGO):
+if LOGO and not os.path.exists(LOGO):
     # full-frame 4K overlay with the corner logo where the channel places it (measured on the reference)
     os.makedirs(GEN, exist_ok=True)
     subprocess.run([sys.executable, "-I", os.path.join(HERE, "make-logo-overlay.py"),
                     os.path.join(TEMPLATE, CH["logo_file"]), LOGO] + [str(v) for v in CH["logo_box"]], check=True)
-logo_id = asset(LOGO, "still")
-connect(0, lambda off: f'<video ref="{logo_id}" lane="2" offset="{off}" name="Logo" start="0s" '
-        f'duration="{ts(shots[-1]["f1"])}"/>')          # logo stays to the very end
+if LOGO:
+    logo_id = asset(LOGO, "still")
+    connect(0, lambda off: f'<video ref="{logo_id}" lane="2" offset="{off}" name="Logo" start="0s" '
+            f'duration="{ts(shots[-1]["f1"])}"/>')      # logo stays to the very end
 # the ending's own sound (channel.json "ending_sound") goes on FINAL A3 under it
 overlays = [dict(name="ENDING", path=ending, audio=ending if CH.get("ending_sound") and probe(ending)["audio"] else None,
                  start=end_of_vo, dur=ending_dur)]
@@ -593,6 +603,27 @@ for prefix, _ in PLAN:
     first = next(s for s in shots if s["section"] == prefix)
     os.makedirs(GEN, exist_ok=True)
     lt = os.path.join(GEN, "lower-third-" + re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-").lower() + ".mov")
+    if CH.get("lower_third_style") == "bar":           # World Unpaved: stays on for the whole section
+        st = first["f0"] / float(FPS)
+        last = max(i for i, s in enumerate(shots) if s["section"] == prefix)
+        end = (shots[last + 1]["f0"] if last + 1 < len(shots) else shots[last]["f1"]) / float(FPS)
+        base = lt[:-4]
+        if not os.path.exists(base + "-out.mov"):
+            subprocess.run([sys.executable, "-I", os.path.join(HERE, "render-lower-third-bar.py"), name, base],
+                           check=True)
+        d_in, d_out = probe(base + "-in.mov")["dur"], probe(base + "-out.mov")["dur"]
+        # in animation, the small title held as a still, out animation ending with the section
+        for path, kind, s0, du in ((base + "-in.mov", "overlay_v", st, d_in),
+                                   (base + "-hold.png", "still", st + d_in, end - st - d_in - d_out),
+                                   (base + "-out.mov", "overlay_v", end - d_out, d_out)):
+            if du <= 0:
+                continue
+            lid = asset(path, kind)
+            overlays.append(dict(name="Lower third", path=path, audio=None, start=s0, dur=du, still=kind == "still"))
+            connect(s0, lambda off, lid=lid, du=du: (
+                f'<video ref="{lid}" lane="1" offset="{off}" name="Lower third" start="0s" '
+                f'duration="{ts(frames(du))}"/>'))
+        continue
     if not os.path.exists(lt):
         if CH.get("lower_third_style") == "pin":           # Docs Untold: pin + place + region
             cmd = ["render-lower-third-pin.py", name, EP.get("region", ""), f"{LOWER_THIRD_DUR}", lt]

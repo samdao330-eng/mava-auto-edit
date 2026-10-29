@@ -1,7 +1,7 @@
 # MAVA AUTO EDIT
 
 MAVA AUTO EDIT builds Premiere Pro timelines (xmeml `.xml`) for the travel channels (Earthcue, Docs Untold,
-Tripinsight, Chaseland, …) from an episode folder: script `.xlsx` + VO + footage. **All channels share one
+Tripinsight, Chaseland, World Unpaved, …) from an episode folder: script `.xlsx` + VO + footage. **All channels share one
 edit style; only the assets differ** (`channels/<slug>/channel.json`). Python tools in `engine/` do the work;
 the Markdown in `skills/` says how. Everything runs through `./autoedit` (it picks the channel from the
 episode folder).

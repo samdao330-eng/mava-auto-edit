@@ -16,6 +16,7 @@ DOCS="/Volumes/SAM/0-DOCSUNTOLD/260922 Docs Untold - Patagonia"
 EC="/Volumes/SAM/0-EARTHCUE/260824 Earthcue - Sierra Nevada"
 TI="/Volumes/SAM/0-TRIPINSIGHT/260414 Tripinsight - Colombia"
 CL="/Volumes/SAM/0-CHASELAND/260822 Chaseland - Australia"
+WU="/Volumes/SAM/261015 World Unpaved - Amazon"
 
 run docs  edit "$DOCS" --out "$OUT/docs"
 run ec    edit "$EC" --out "$OUT/ec"
@@ -24,5 +25,6 @@ run ti    edit "$TI" --out "$OUT/ti"
 run ti-ES lang "$TI" ES --en-work "$OUT/ti/.autoedit/_work" --out "$OUT/ti-ES"
 run ti-PT lang "$TI" PT --en-work "$OUT/ti/.autoedit/_work" --out "$OUT/ti-PT"
 run cl    edit "$CL" --out "$OUT/cl"
+run wu    edit "$WU" --out "$OUT/wu"
 "$A" check "$OUT"/*/*.xml || fail=1
 exit $fail

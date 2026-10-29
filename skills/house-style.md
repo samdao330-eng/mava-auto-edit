@@ -40,13 +40,14 @@ style: they live in `channels/<slug>/channel.json`.
 ## Graphics
 
 - Lower third at the first cut of each location (and of story sections when the channel's
-  `lower_third_kinds` says so), for the channel's `lower_third_seconds`.
+  `lower_third_kinds` says so), for the channel's `lower_third_seconds` — or for the whole section when the
+  channel's lower third stays on (World Unpaved, `lower_third_style: "bar"`).
 - One Subscribe: where the VO starts the first line asking to subscribe; without one, the first line asking
   viewers to comment (not the quiz's "Comment your answer"); the middle of the video only if neither
   (user-set 2026-10-22). Placed and sized like the channel template (`subscribe_motion`), its sound on A3
   when the channel has one.
 - QR card (`cta`): from `lead` seconds before the line that matches (e.g. "QR code").
-- Ending right after the last VO, over the last footage; logo to the end.
+- Ending right after the last VO, over the last footage; logo to the end (channels that have one).
 
 ## Music
 

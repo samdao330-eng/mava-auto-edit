@@ -31,6 +31,7 @@ Thư mục tập **phải nằm trong thư mục của kênh** thì công cụ m
 ```
 /Volumes/SAM/0-EARTHCUE/…      /Volumes/SAM/0-TRIPINSIGHT/…
 /Volumes/SAM/0-DOCSUNTOLD/…    /Volumes/SAM/0-CHASELAND/…
+/Volumes/SAM/0-WORLDUNPAVED/…  (World Unpaved: tên tập có "World Unpaved - " là đủ)
 ```
 
 Bên trong cần đủ 3 thứ:

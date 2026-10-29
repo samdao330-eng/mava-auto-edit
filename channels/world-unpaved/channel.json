@@ -1,0 +1,27 @@
+{
+ "channel": "World Unpaved",
+ "match": [
+  "/0-WORLDUNPAVED/",
+  "/0-WORLD UNPAVED/",
+  "WORLD UNPAVED - "
+ ],
+ "template": "/Volumes/SAM/0-SAM ASSET/0-World Unpaved Template",
+ "music_lib": "/Volumes/SAM/0-SAM ASSET/BACKGROUND MUSIC",
+ "logo_file": null,
+ "ending_file": "End Screen WORLD UNPAVED-001.mov",
+ "ending_sound": false,
+ "subscribe_file": "Subscribe WORLD UNPAVED.mov",
+ "subscribe_motion": [
+  200,
+  0.5,
+  0.5
+ ],
+ "subscribe_sound": false,
+ "lower_third_style": "bar",
+ "lower_third_kinds": [
+  "location",
+  "story"
+ ],
+ "intro_title": false,
+ "cold_open_shot": 2.0
+}

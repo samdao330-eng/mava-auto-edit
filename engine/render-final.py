@@ -29,8 +29,9 @@ os.makedirs(tmp, exist_ok=True)
 bounds = [0] + [i for i, s in enumerate(shots) if s.get("dip")] + [len(shots)]
 sections = [(bounds[k], bounds[k + 1]) for k in range(len(bounds) - 1)]
 total_f = shots[-1]["f1"]
-overlays = [dict(path=edl["logo"], start=0.0, dur=total_f / F, still=True)] + \
-           [dict(path=o["path"], start=float(o["start"]), dur=float(o["dur"])) for o in edl["overlays"]]
+overlays = ([dict(path=edl["logo"], start=0.0, dur=total_f / F, still=True)] if edl.get("logo") else []) + \
+           [dict(path=o["path"], start=float(o["start"]), dur=float(o["dur"]), still=o.get("still", False))
+            for o in edl["overlays"]]
 
 
 def overlap(i):
@@ -80,7 +81,8 @@ def render_section(k, a, b):
             continue
         shift = (o0 - f_start) / F
         if o.get("still"):
-            cmd += ["-loop", "1", "-framerate", R, "-i", o["path"]]
+            # a still runs for its own length (a held lower third), the logo for the whole section
+            cmd += ["-loop", "1", "-framerate", R, "-t", f"{o['dur'] - max(0.0, -shift):.4f}", "-i", o["path"]]
             src_ss = 0
         else:
             src_ss = max(0.0, -shift)

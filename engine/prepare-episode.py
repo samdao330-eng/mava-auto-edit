@@ -98,6 +98,12 @@ for r in ws.iter_rows(min_row=2, values_only=True):
         rows.append(dict(n=n, sec=sec, en=text, file=f, **({"extra": True} if not text.strip() else {})))
 
 
+empty = [s for s in sections if not any(r["sec"] == s for r in rows)]
+for s in empty:                                          # a divider with no lines under it (World Unpaved "PLACES")
+    print(f"note: heading without lines skipped: {s.splitlines()[0]}")
+sections = [s for s in sections if s not in empty]
+
+
 def kind_of(i, title):
     t = title.lower()
     if re.match(r"\d+\.", title):

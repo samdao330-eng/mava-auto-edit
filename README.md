@@ -1,6 +1,6 @@
 # MAVA AUTO EDIT
 
-Môi trường dựng tự động cho các kênh du lịch (Earthcue, Docs Untold, Tripinsight, Chaseland, …): từ thư mục
+Môi trường dựng tự động cho các kênh du lịch (Earthcue, Docs Untold, Tripinsight, Chaseland, World Unpaved, …): từ thư mục
 tập (kịch bản `.xlsx` + VO + footage) xuất ra timeline **Premiere Pro** (`.xml`) theo đúng kiểu dựng đã chốt.
 Một bộ máy dùng chung cho mọi kênh; mỗi kênh chỉ khác asset trong `channels/<kênh>/channel.json`.
 

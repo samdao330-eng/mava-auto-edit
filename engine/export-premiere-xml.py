@@ -68,7 +68,9 @@ def file_xml(path, fid, still):
     # Premiere's FCP7 importer only takes %20: a path encoded any further (a comma, "&", brackets, or the
     # combining accent macOS writes in file names) makes it refuse the whole file, silently. So the path
     # goes in composed and with only the space escaped (user-set: found 2026-10-23).
-    url = "file://localhost" + urllib.parse.quote(unicodedata.normalize("NFC", path), safe="/,()&'!$+=@~[]^`{}|;?#")
+    # quote() would escape every non-ASCII byte ("Yasuní" -> "Yasun%C3%AD"), so those letters are kept as they are
+    url = "file://localhost" + "".join(c if ord(c) > 127 else urllib.parse.quote(c, safe="/,()&'!$+=@~[]^`{}|;?#")
+                                       for c in unicodedata.normalize("NFC", path))
     return (f'<file id="{fid}"><name>{escape(os.path.basename(path))}</name>'
             f"<pathurl>{escape(url)}</pathurl>{RATE}<duration>{n}</duration>"
             f"<timecode>{RATE}<string>00:00:00:00</string><frame>0</frame><displayformat>NDF</displayformat>"
@@ -218,10 +220,11 @@ for m in edl["music"]:
 for x in edl.get("sfx", []):
     master(x["path"], "SOUND")
 for o in edl["overlays"]:
-    master(o["path"], "ASSET")
+    master(o["path"], "ASSET", still=o.get("still", False))
     if o.get("audio"):
         master(o["audio"], "ASSET")
-master(edl["logo"], "ASSET", still=True)
+if edl.get("logo"):                                     # a channel without a corner logo has none
+    master(edl["logo"], "ASSET", still=True)
 
 # ---------------------------------------------------------------- one sequence per section
 # Sections split where the edit dips to black. Each runs from its first shot to the next
@@ -300,10 +303,11 @@ fv1 = [nest(n, sid, S0, S1) for n, sid, S0, S1 in sections]
 fa1 = [lambda ch, cid, links, n=n, sid=sid, S0=S0, S1=S1: nest(n, sid, S0, S1, "audio", ch, cid, links)
        for n, sid, S0, S1 in sections]
 ov_spans = [(fr(o["start"]), fr(o["start"] + o["dur"]), o) for o in edl["overlays"]]
-fv2 = [[clipitem(o["name"], o["path"], fr(o["start"]), fr(o["start"] + o["dur"]), 0) for o in ln]
+fv2 = [[clipitem(o["name"], o["path"], fr(o["start"]), fr(o["start"] + o["dur"]), 0, still=o.get("still", False))
+        for o in ln]
        for ln in lanes(ov_spans)]
 fv3 = [dissolve(0, DIP, "start-black"), clipitem("Logo", edl["logo"], 0, total, 0, still=True),
-       dissolve(total, DIP, "end-black")]
+       dissolve(total, DIP, "end-black")] if edl.get("logo") else None
 # end = frame of (start + length), so back-to-back songs meet exactly instead of overlapping by a frame
 fa2 = [lambda ch, cid, links, m=m: clipitem(
            os.path.basename(m["path"]), m["path"], fr(m["start"]), fr(m["start"] + m["dur"]), 0, "audio",
@@ -312,7 +316,7 @@ fa2 = [lambda ch, cid, links, m=m: clipitem(
 fa3 = [[lambda ch, cid, links, o=o: clipitem(o["name"], o["audio"], fr(o["start"]), fr(o["start"] + o["dur"]), 0,
                                              "audio", ch=ch, cid=cid, links=links) for o in ln]
        for ln in lanes([sp for sp in ov_spans if sp[2].get("audio")])]
-final = sequence(f"sequence-{len(sections) + 1}", "FINAL", total, [fv1] + fv2 + [fv3], [fa1, fa2] + fa3)
+final = sequence(f"sequence-{len(sections) + 1}", "FINAL", total, [fv1] + fv2 + ([fv3] if fv3 else []), [fa1, fa2] + fa3)
 
 
 def bin_xml(name, children):
