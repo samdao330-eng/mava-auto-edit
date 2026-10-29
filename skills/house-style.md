@@ -39,6 +39,8 @@ style: they live in `channels/<slug>/channel.json`.
 
 ## Graphics
 
+- Footage missing from VIDEO: the episode still builds, that line stays empty on V1 with a warning (at a
+  section start the next shot takes the line) (user-set 2026-10-29).
 - Lower third at the first cut of each location (and of story sections when the channel's
   `lower_third_kinds` says so), for the channel's `lower_third_seconds` — or for the whole section when the
   channel's lower third stays on (World Unpaved, `lower_third_style: "bar"`).

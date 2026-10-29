@@ -543,3 +543,11 @@ Nhật ký các lần làm việc. Append vào cuối, không ghi đè. Mỗi m�
 - **Kiểm thử:** dựng Amazon từ bản symlink trong scratchpad (dòng 9 tạm trỏ sang `9-1434129624.mov`): 54,4 phút, 472 shot, 13 section, 35 overlay, `check` OK. `make test`: ti 59,08 phút/494 shot, ti-ES 490 shot, ti-PT 489 shot, cl 57,39 phút/506 shot — giống hệt trước; `docs`, `ec`, `ec-ES` vẫn hỏng dữ liệu có sẵn; `wu` lỗi vì thiếu footage `9-539873277`. Đã xoá `.test-output` (12 GB).
 - **Deploy:** không. Đã commit, chưa push.
 - **Còn lại:** user chọn footage cho dòng 9 (`9-539873277` không có trong `video/`, chỉ có `9-1434129624.mov`); chưa import thử XML vào Premiere; Pillow không có kerning nên vị trí từng chữ lệch tối đa ~20 px so với bản Premiere.
+
+## 2026-10-29 10:50 — Footage thiếu thì để trống, dựng tập Amazon thật
+
+- **Yêu cầu:** dòng 9 tập Amazon (`9-539873277` không có trong `video/`) — user: "để trống".
+- **Đã làm:** `build-timeline.py`: footage không có trong VIDEO không còn dừng cả tập — dòng đó để trống trên V1 (đoạn trước có `gap_after`), báo `<file>: not in VIDEO, V1 empty …`; nếu là shot đầu section thì shot kế tiếp chiếm chỗ, section vẫn mở bằng footage; `sentence_pause()` bỏ qua file thiếu. Ghi quy tắc vào `skills/house-style.md` (user-set), `docs/huong-dan-editor.md`. Dựng `261015 World Unpaved - Amazon.xml` trong thư mục tập: 54,4 phút, 471 shot, dòng 9 trống 16,0–18,0 s.
+- **Kiểm thử:** `check` OK tập Amazon. Hai tập mẫu trước giờ hỏng vì thiếu footage nay dựng được, `check` OK: Docs Patagonia 56,7 phút/426 shot (trống 6,4 s ở 1:47); Earthcue Sierra Nevada 64,5 phút/537 shot (`372-DAQRZAQ` đầu section → shot sau chiếm chỗ; `530-` trống 6,6 s ở 63:17). Tripinsight/Chaseland không có footage thiếu nên không đi vào nhánh mới (đã xác nhận bằng `make test` phiên 09:40). Đã xoá `.test-output`.
+- **Deploy:** không. Đã commit, chưa push.
+- **Còn lại:** chưa import thử XML Amazon vào Premiere; `--out` tương đối làm `check` báo thiếu file (đường dẫn tương đối trong XML) — nên dùng đường dẫn tuyệt đối.

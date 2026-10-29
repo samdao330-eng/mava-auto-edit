@@ -194,7 +194,10 @@ def sentence_pause(shot, vo_end):
     """Pause after a sentence: SENTENCE_PAUSE, cut back (not below MIN_PAUSE) when the shot
     under the end of the sentence has too little footage to reach the next shot plus its
     dissolve. Room = clip minus 0.5 s head (incoming dissolve) and 0.5 s tail (outgoing)."""
-    path = find_file(VIDEO, shot["line"]["file"])
+    try:
+        path = find_file(VIDEO, shot["line"]["file"])
+    except FileNotFoundError:                           # missing footage: its line is left empty anyway
+        return SENTENCE_PAUSE
     clip = 1e9 if path.lower().endswith(STILL_EXT) else float(probe(path)["dur"])   # a photo never runs out
     room = clip - 1.05 - (vo_end - CUT_LEAD - shot["start"])
     return min(SENTENCE_PAUSE, max(MIN_PAUSE, room))
@@ -353,7 +356,13 @@ for s in shots:
 # ---------------------------------------------------------------- shots -> source ranges
 for i, s in enumerate(shots):
     s["end"] = shots[i + 1]["start"] if i + 1 < len(shots) else timeline_end
-    s["path"] = find_file(VIDEO, s["line"]["file"])
+    try:
+        s["path"] = find_file(VIDEO, s["line"]["file"])
+    except FileNotFoundError:
+        if i == 0:
+            raise
+        s["missing"] = True                             # its line stays empty on V1, see below
+        continue
     if s["path"].lower().endswith(STILL_EXT):
         s["path"], s["still"] = still_4k(s["path"]), True
     s["probe"] = probe(s["path"])
@@ -366,6 +375,21 @@ for s in shots:
     s["f0"], s["f1"] = frames(s["start"]), frames(s["end"])
 for i in range(1, len(shots)):
     shots[i]["f0"] = shots[i - 1]["f1"]
+# footage not in VIDEO: its line is left empty on V1 for the editor to fill (user-set 2026-10-29); at the
+# start of a section the next shot of that section takes the line instead, so the section still opens on footage
+for i, s in enumerate(shots):
+    if not s.get("missing"):
+        continue
+    m, sec = divmod(s["f0"] / FPS, 60)
+    nxt = shots[i + 1] if i + 1 < len(shots) else None
+    if shots[i - 1]["section"] != s["section"] and nxt is not None and nxt["section"] == s["section"]:
+        nxt["f0"], nxt["start"] = s["f0"], s["start"]
+        warnings.append(f"{s['line']['file']}: not in VIDEO, the next shot plays from {int(m)}:{float(sec):04.1f}")
+    else:
+        shots[i - 1]["gap_after"] = True
+        warnings.append(f"{s['line']['file']}: not in VIDEO, V1 empty {float((s['f1'] - s['f0']) / FPS):.1f}s "
+                        f"from {int(m)}:{float(sec):04.1f}")
+shots = [s for s in shots if not s.get("missing")]
 # Footage always stays on its own script line. A clip too short for its line plays in full
 # from the start of the line and the rest of the line is left empty on V1 (gap_after), for
 # the editor to fill by hand; the next shot still starts exactly on its own line.

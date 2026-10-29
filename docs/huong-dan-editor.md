@@ -92,7 +92,8 @@ Lần đầu mất vài phút vì phải nhận dạng giọng nói; các lần 
 
 Dựng xong sẽ báo: độ dài, số shot, số câu thoại, và **cảnh báo**. Đọc cảnh báo, đừng bỏ qua — hay gặp nhất
 là *V1 trống x giây từ phút y*, nghĩa là footage ngắn hơn lời thoại, chỗ đó sẽ đen màn hình, cần thay
-footage dài hơn hoặc bù clip trong Premiere.
+footage dài hơn hoặc bù clip trong Premiere. Cảnh báo *not in VIDEO* nghĩa là footage của dòng đó không có
+trong `VIDEO/`: công cụ vẫn dựng, dòng đó để trống trên V1 để tự chèn sau.
 
 ---
 
@@ -164,7 +165,7 @@ Sửa kịch bản hoặc thay footage rồi muốn dựng lại:
 | `no .xlsx with a 'Content' sheet` | kịch bản thiếu, hoặc sheet không tên `Content` |
 | `no EN/AUDIO folder` | thư mục lời thoại sai tên hoặc chưa có |
 | không biết tập thuộc kênh nào | thư mục tập chưa nằm trong `/Volumes/SAM/0-<KÊNH>/` |
-| thiếu footage `126-…` | tên trong cột `File name EN` không khớp file trong `VIDEO/` |
+| `126-…: not in VIDEO` | tên trong cột `File name EN` không khớp file trong `VIDEO/` — dòng đó để trống trên V1 |
 | Premiere không import | chạy `./autoedit check "<file.xml>"` rồi gửi kết quả |
 | lệnh không chạy, `command not found` | máy này chưa `make setup` |
 
