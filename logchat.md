@@ -559,3 +559,11 @@ Nhật ký các lần làm việc. Append vào cuối, không ghi đè. Mỗi m�
 - **Kiểm thử:** `make test`: docs, ec, ec-ES, ti, ti-ES, ti-PT, wu dựng xong, `check` OK (2–9 clip 200 % mỗi tập, Earthcue 1 clip 400 %). `cl` lỗi vì thư mục tập mẫu Chaseland mất file `.xlsx` (sửa lúc 13:51 hôm nay, không do engine) — xuất lại XML Chaseland từ `edl.json` cũ: `check` OK, 21 clip 200 %. Đã xoá `.test-output`.
 - **Deploy:** không. Đã commit, chưa push.
 - **Còn lại:** chưa import thử vào Premiere để xem Scale có được nhận; tập mẫu Chaseland cần lại file `.xlsx`.
+
+## 2026-10-29 19:40 — Lower third World Unpaved: 1 clip mỗi section
+
+- **Yêu cầu:** lower third World Unpaved đang là 3 layer/section (in .mov + hold .png + out .mov) — gom thành 1.
+- **Đã làm:** `render-lower-third-bar.py` nhận thêm `<frames> <out.mov>`: in/hold/out vẫn render 1 lần làm cache, rồi ghép thành 1 file `lower-third-<tên>-<frames>f.mov` dài đúng section (QuickTime Animation + alpha, keyframe 10 s; section ngắn hơn in+out thì cắt bớt in). `build-timeline.py` đặt 1 clip/section trên V2. Sửa `channels/world-unpaved/NOTES.md` (user-set). Dựng lại `261015 World Unpaved - Amazon.xml`.
+- **Kiểm thử:** Amazon: 11 lower third, mỗi section 1 clip, `check` OK, 11 file tổng 152 MB (Gocta 3007 frame: 6 s render, 7 MB); xem frame 1 / 3,5 / 50 / 99,5 / 100,2 s đúng animation. `make test`: mọi tập dựng xong + `check` OK trừ `cl` (tập mẫu Chaseland vẫn thiếu `.xlsx`). Đã xoá `.test-output`.
+- **Deploy:** không. Đã commit, chưa push.
+- **Còn lại:** chưa import thử vào Premiere (codec Animation 4K có alpha); tập mẫu Chaseland cần lại `.xlsx`.

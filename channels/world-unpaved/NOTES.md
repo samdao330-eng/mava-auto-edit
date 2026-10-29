@@ -23,8 +23,9 @@ Assets and options: `channel.json` here. Shared style: `skills/house-style.md`.
   story section (not intro / outro), and it **stays on for the whole section**: the bar grows (0.29-0.66 s),
   letters fly in from the right one by one (0.39-1.46 s), at 3.05-3.5 s everything shrinks to 70.9 % towards
   the bottom left (large: bar x 130-142 / y 1848-2023, caps 1888-1984; small: bar 58-66 / 1960-2084, caps
-  1989-2057), then letters fly out right to left in the last 0.81 s and the bar goes. On V2 as three clips:
-  `-in.mov` (3.6 s), `-hold.png` (still, stretched), `-out.mov` (0.9 s). No number.
+  1989-2057), then letters fly out right to left in the last 0.81 s and the bar goes. On V2 as **one clip** per section
+  (`lower-third-<name>-<frames>f.mov`, QuickTime Animation + alpha, made from cached in / hold / out pieces;
+  user-set 2026-10-29: three clips per section were too many layers). No number.
 - Subscribe `Subscribe WORLD UNPAVED.mov` (1080p 25 fps, alpha, no sound) at 200 % centred, 7.04 s.
 - Ending `End Screen WORLD UNPAVED-001.mov` (4K alpha, 22.2 s, no sound).
 - No opening title, no quiz, no QR, no other languages (the script has ES / PT columns, empty so far).

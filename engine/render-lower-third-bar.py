@@ -1,10 +1,13 @@
 """Render the World Unpaved lower third (a Premiere graphic in the channel's projects: text + shape + the
-Impact Text Animator) as three pieces that together cover a whole section:
+Impact Text Animator) as ONE clip that covers a whole section, built from three cached pieces:
 
   <prefix>-in.mov    0-3.6 s: a red bar grows from its middle, the name flies in letter by letter from the
                      right (motion-blurred), then everything shrinks to 70.9 % towards the bottom left
-  <prefix>-hold.png  the small state, a still the timeline stretches over the rest of the section
+  <prefix>-hold.png  the small state, held over the rest of the section
   <prefix>-out.mov   the last 0.9 s: letters fly out right to left, then the bar slides away
+joined into <out.mov> of exactly <frames> frames (QuickTime Animation with alpha: the held part costs almost
+nothing, a whole section is a few seconds to encode and tens of MB). One clip per section on V2, not three
+(user-set 2026-10-29).
 
 Measured from "261015 World Unpaved - Amazon" FINAL (section "1. Gocta Waterfall"):
   large  bar x 130-142, y 1848-2023, rgb(213, 39, 39); white Be Vietnam Pro Regular caps, ink from x=201,
@@ -13,12 +16,12 @@ Measured from "261015 World Unpaved - Amazon" FINAL (section "1. Gocta Waterfall
   times  bar 0.29-0.66 s, letters 0.39-1.46 s, shrink 3.05-3.5 s; out: letters end-0.81 to end-0.28 s,
          bar end-0.28 to end-0.15 s
 
-Usage: python render-lower-third-bar.py "<name>" <out prefix>
+Usage: python render-lower-third-bar.py "<name>" <pieces prefix> <frames> <out.mov>
 """
 import os, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont
 
-text, prefix = sys.argv[1].upper(), sys.argv[2]
+text, prefix, total, out_mov = sys.argv[1].upper(), sys.argv[2], int(sys.argv[3]), sys.argv[4]
 W, H, FPS = 3840, 2160, 30000 / 1001
 HERE = os.path.dirname(os.path.abspath(__file__))
 RED, WHITE = (213, 39, 39, 255), (255, 255, 255, 255)
@@ -140,7 +143,19 @@ def encode(path, frames):
 
 
 n_in, n_out = int(round(IN_DUR * FPS)), int(round(OUT_DUR * FPS))
-encode(prefix + "-in.mov", (at_in(i / FPS) for i in range(n_in)))
-at_in(IN_DUR).save(prefix + "-hold.png")
-encode(prefix + "-out.mov", (at_out((n_out - i) / FPS) for i in range(n_out)))
-print("lower third:", prefix, n_in, "+", n_out, "frames")
+if not os.path.exists(prefix + "-out.mov"):            # the pieces depend only on the name: made once
+    encode(prefix + "-in.mov", (at_in(i / FPS) for i in range(n_in)))
+    at_in(IN_DUR).save(prefix + "-hold.png")
+    encode(prefix + "-out.mov", (at_out((n_out - i) / FPS) for i in range(n_out)))
+
+# in, the still repeated, out; a section shorter than in + out keeps the start of in and all of out
+hold = total - n_in - n_out
+a = min(n_in, total - n_out)
+fc = (f"[0:v]format=rgba,trim=end_frame={max(1, a)},setpts=N/(30000/1001)/TB[a];"
+      f"[1:v]format=rgba,loop=loop={max(0, hold - 1)}:size=1,trim=end_frame={max(1, hold)},"
+      f"setpts=N/(30000/1001)/TB[b];[2:v]format=rgba,setpts=N/(30000/1001)/TB[c];"
+      + ("[a][b][c]concat=n=3:v=1:a=0" if hold > 0 else "[a][c]concat=n=2:v=1:a=0"))
+subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", prefix + "-in.mov", "-loop", "0", "-i", prefix + "-hold.png",
+                "-i", prefix + "-out.mov", "-filter_complex", fc, "-r", "30000/1001", "-frames:v", str(total),
+                "-c:v", "qtrle", "-g", "300", "-pix_fmt", "argb", out_mov], check=True)
+print("lower third:", out_mov, total, "frames")

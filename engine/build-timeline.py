@@ -627,26 +627,21 @@ for prefix, _ in PLAN:
     first = next(s for s in shots if s["section"] == prefix)
     os.makedirs(GEN, exist_ok=True)
     lt = os.path.join(GEN, "lower-third-" + re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-").lower() + ".mov")
-    if CH.get("lower_third_style") == "bar":           # World Unpaved: stays on for the whole section
-        st = first["f0"] / float(FPS)
+    if CH.get("lower_third_style") == "bar":           # World Unpaved: one clip on for the whole section
+        f0 = first["f0"]
         last = max(i for i, s in enumerate(shots) if s["section"] == prefix)
-        end = (shots[last + 1]["f0"] if last + 1 < len(shots) else shots[last]["f1"]) / float(FPS)
+        n = (shots[last + 1]["f0"] if last + 1 < len(shots) else shots[last]["f1"]) - f0
         base = lt[:-4]
-        if not os.path.exists(base + "-out.mov"):
-            subprocess.run([sys.executable, "-I", os.path.join(HERE, "render-lower-third-bar.py"), name, base],
-                           check=True)
-        d_in, d_out = probe(base + "-in.mov")["dur"], probe(base + "-out.mov")["dur"]
-        # in animation, the small title held as a still, out animation ending with the section
-        for path, kind, s0, du in ((base + "-in.mov", "overlay_v", st, d_in),
-                                   (base + "-hold.png", "still", st + d_in, end - st - d_in - d_out),
-                                   (base + "-out.mov", "overlay_v", end - d_out, d_out)):
-            if du <= 0:
-                continue
-            lid = asset(path, kind)
-            overlays.append(dict(name="Lower third", path=path, audio=None, start=s0, dur=du, still=kind == "still"))
-            connect(s0, lambda off, lid=lid, du=du: (
-                f'<video ref="{lid}" lane="1" offset="{off}" name="Lower third" start="0s" '
-                f'duration="{ts(frames(du))}"/>'))
+        out_lt = f"{base}-{n}f.mov"                    # its length is in the name: a rebuild with other cuts re-renders
+        if not os.path.exists(out_lt):
+            subprocess.run([sys.executable, "-I", os.path.join(HERE, "render-lower-third-bar.py"), name, base,
+                            str(n), out_lt], check=True)
+        st, du = f0 / float(FPS), n / float(FPS)
+        lid = asset(out_lt, "overlay_v")
+        overlays.append(dict(name="Lower third", path=out_lt, audio=None, start=st, dur=du))
+        connect(st, lambda off, lid=lid, du=du: (
+            f'<video ref="{lid}" lane="1" offset="{off}" name="Lower third" start="0s" '
+            f'duration="{ts(frames(du))}"/>'))
         continue
     if not os.path.exists(lt):
         if CH.get("lower_third_style") == "pin":           # Docs Untold: pin + place + region
