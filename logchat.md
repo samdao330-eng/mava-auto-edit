@@ -551,3 +551,11 @@ Nhật ký các lần làm việc. Append vào cuối, không ghi đè. Mỗi m�
 - **Kiểm thử:** `check` OK tập Amazon. Hai tập mẫu trước giờ hỏng vì thiếu footage nay dựng được, `check` OK: Docs Patagonia 56,7 phút/426 shot (trống 6,4 s ở 1:47); Earthcue Sierra Nevada 64,5 phút/537 shot (`372-DAQRZAQ` đầu section → shot sau chiếm chỗ; `530-` trống 6,6 s ở 63:17). Tripinsight/Chaseland không có footage thiếu nên không đi vào nhánh mới (đã xác nhận bằng `make test` phiên 09:40). Đã xoá `.test-output`.
 - **Deploy:** không. Đã commit, chưa push.
 - **Còn lại:** chưa import thử XML Amazon vào Premiere; `--out` tương đối làm `check` báo thiếu file (đường dẫn tương đối trong XML) — nên dùng đường dẫn tuyệt đối.
+
+## 2026-10-29 17:30 — Footage nhỏ hơn 4K tự fill khung
+
+- **Yêu cầu:** footage Full HD / chưa đủ 4K thì tự phóng cho kín khung hình. (User hỏi thêm hard limit A2 -28 dB rồi bỏ — không làm.)
+- **Đã làm:** `export-premiere-xml.py`: đọc kích thước thật của từng file (khai báo đúng width/height trong XML), clip V1 nhỏ hơn 3840x2160 có Basic Motion Scale = max(3840/w, 2160/h) (1920x1080 → 200 %, 960x540 → 400 %), cắt giữa như `render-final`; 4K và lớn hơn (4096x2160/2304) giữ 100 % như cũ. Ghi luật vào `skills/house-style.md` (user-set). Xuất lại `261015 World Unpaved - Amazon.xml` từ edl cũ (9 clip 200 %).
+- **Kiểm thử:** `make test`: docs, ec, ec-ES, ti, ti-ES, ti-PT, wu dựng xong, `check` OK (2–9 clip 200 % mỗi tập, Earthcue 1 clip 400 %). `cl` lỗi vì thư mục tập mẫu Chaseland mất file `.xlsx` (sửa lúc 13:51 hôm nay, không do engine) — xuất lại XML Chaseland từ `edl.json` cũ: `check` OK, 21 clip 200 %. Đã xoá `.test-output`.
+- **Deploy:** không. Đã commit, chưa push.
+- **Còn lại:** chưa import thử vào Premiere để xem Scale có được nhận; tập mẫu Chaseland cần lại file `.xlsx`.

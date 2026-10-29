@@ -26,15 +26,23 @@ def probe(path):
     """Duration (s) and whether the file has video / audio streams."""
     if path not in _probe:
         j = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries",
-                                       "format=duration:stream=codec_type,channels", "-of", "json", path],
-                                      capture_output=True, text=True).stdout)
+                                       "format=duration:stream=codec_type,channels,width,height", "-of", "json",
+                                       path], capture_output=True, text=True).stdout)
         types = {s["codec_type"] for s in j.get("streams", [])}
+        v = next((s for s in j.get("streams", []) if s["codec_type"] == "video" and s.get("width")), None)
+        _size[path] = (v["width"], v["height"]) if v else (W, H)
         _channels[path] = max([s.get("channels", 0) for s in j.get("streams", []) if s["codec_type"] == "audio"] or [0])
         _probe[path] = (float(j["format"].get("duration") or 0), "video" in types, "audio" in types)
     return _probe[path]
 
 
-_channels = {}
+_channels, _size = {}, {}
+
+
+def size(path):
+    """Frame size of a video file (the sequence size for audio-only files)."""
+    probe(path)
+    return _size[path]
 
 
 def channels(path):
@@ -55,7 +63,8 @@ def file_xml(path, fid, still):
     n = 86400 * 30 if still else max(1, fr(dur))           # stills: effectively unlimited
     media = ""
     if has_v or still:
-        media += (f"<video><samplecharacteristics>{RATE}<width>{W}</width><height>{H}</height>"
+        w, h = size(path)
+        media += (f"<video><samplecharacteristics>{RATE}<width>{w}</width><height>{h}</height>"
                   f"</samplecharacteristics></video>")
     if has_a and not still:
         n_ch = channels(path)
@@ -114,15 +123,32 @@ def master(path, bin_name, still=False):
 ids = [0]
 
 
-def clipitem(name, path, start, end, src_in, kind="video", still=False, gain=None, ch=1, cid=None, links=""):
+def fill_motion(path):
+    """Basic Motion scale that makes footage smaller than the 4K frame (Full HD, 2.7K, vertical …) fill it,
+    centre-cropped like render-final (user-set 2026-10-29). Premiere places such a clip at 100 %, a small
+    picture in black, so it has to be scaled up in the XML."""
+    w, h = size(path)
+    sc = max(W / w, H / h) * 100
+    if sc < 100.01:                                     # 4K and larger (4096 x 2304 …) stay at 100 % as before
+        return ""
+    return ("<filter><effect><name>Basic Motion</name><effectid>basic</effectid><effectcategory>motion"
+            "</effectcategory><effecttype>motion</effecttype><mediatype>video</mediatype>"
+            "<parameter authoringApp=\"PremierePro\"><parameterid>scale</parameterid><name>Scale</name>"
+            f"<valuemin>0</valuemin><valuemax>1000</valuemax><value>{sc:.2f}</value></parameter>"
+            "</effect></filter>")
+
+
+def clipitem(name, path, start, end, src_in, kind="video", still=False, gain=None, ch=1, cid=None, links="",
+             fill=False):
     """One clip on a track. start/end are sequence frames, src_in a source frame.
-    Audio: ch is the source channel this half of a stereo pair plays (mono files play channel 1 on both)."""
+    Audio: ch is the source channel this half of a stereo pair plays (mono files play channel 1 on both).
+    fill: scale footage smaller than 4K up to fill the frame (V1 footage)."""
     if cid is None:
         ids[0] += 1
         cid = f"clipitem-{ids[0]}"
     src_out = src_in + (end - start)
     dur = 86400 * 30 if still else max(src_out, fr(probe(path)[0]))
-    extra = ""
+    extra = fill_motion(path) if fill and kind == "video" else ""
     if kind == "audio":
         extra += (f"<sourcetrack><mediatype>audio</mediatype><trackindex>{min(ch, max(1, channels(path)))}"
                   f"</trackindex></sourcetrack>{links}")
@@ -275,7 +301,8 @@ for k, a in enumerate(starts):
             v1.append(dissolve(0, DIP, "start-black"))
         elif not shots[i - 1].get("gap_after"):
             v1.append(dissolve(s["f0"] - S0, PD if i in part_cuts else D))
-        v1.append(clipitem(s["file"], s["path"], s["f0"] - S0, f1 - S0, s["in_f"], still=s.get("still", False)))
+        v1.append(clipitem(s["file"], s["path"], s["f0"] - S0, f1 - S0, s["in_f"], still=s.get("still", False),
+                           fill=True))
         if last:
             v1.append(dissolve(f1 - S0, DIP, "end-black"))
     a1 = [lambda ch, cid, links, v=v, S0=S0: clipitem(
