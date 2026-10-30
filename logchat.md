@@ -567,3 +567,13 @@ Nhật ký các lần làm việc. Append vào cuối, không ghi đè. Mỗi m�
 - **Kiểm thử:** Amazon: 11 lower third, mỗi section 1 clip, `check` OK, 11 file tổng 152 MB (Gocta 3007 frame: 6 s render, 7 MB); xem frame 1 / 3,5 / 50 / 99,5 / 100,2 s đúng animation. `make test`: mọi tập dựng xong + `check` OK trừ `cl` (tập mẫu Chaseland vẫn thiếu `.xlsx`). Đã xoá `.test-output`.
 - **Deploy:** không. Đã commit, chưa push.
 - **Còn lại:** chưa import thử vào Premiere (codec Animation 4K có alpha); tập mẫu Chaseland cần lại `.xlsx`.
+
+## 2026-10-30 09:05 — Subscribe World Unpaved không hiện trong Premiere
+
+- **Yêu cầu:** Subscribe tập Amazon bị lỗi (Premiere không thấy nút). User dặn: hỏng đâu sửa đó, không dựng lại cả tập.
+- **Nguyên nhân:** `placed_copy` (build-timeline + make-language) tính Scale theo khung 4K chứ không theo file gốc: file 1080p ở 200 % thành 7680x4320 rồi bị cắt giữa → nút rơi ra ngoài khung, chỉ thò một dải 58 px ở đáy. Dính mọi file 1080p có motion 200 %: Subscribe World Unpaved, Subscribe Chaseland, ending ES Earthcue / Tripinsight (Docs Untold dùng file 4K, không đổi).
+- **Đã làm:** sửa `placed_copy` tính theo width/height file gốc (make-language: `probe()` đọc thêm width/height). Tạo lại riêng `.autoedit/subscribe.mov` tập Amazon (36,7 MB, nút ở x 678–3164 / y 1591–2002) — XML không đổi, `check` OK. (Lỡ chạy 1 lần `./autoedit edit` Amazon trước khi tìm ra lỗi.)
+- **Kiểm thử:** đo bbox alpha + ảnh khung 90; PSNR xác nhận ending ES Tripinsight Colombia = bản phóng 4 lần. Chưa chạy `make test`.
+- **Sửa thêm (user: "Sửa 2 file đó"):** tạo lại tại chỗ `0-CHASELAND/TEST/260810 Chaseland - Sweden/.autoedit/subscribe.mov` (bbox 112–2225 / 1614–2095) và `0-TRIPINSIGHT/260414 Tripinsight - Colombia/ES/.autoedit/ending.mov` (PSNR so bản đúng = inf). Hai XML đó không dựng lại; `check` của chúng vẫn báo lỗi cũ có sẵn (pathurl mã hoá kiểu cũ, nhạc chồng 1 frame A3/A4) — không liên quan.
+- **Deploy:** không. Đã commit, chưa push.
+- **Còn lại:** chưa chạy `make test` cho sửa engine; Chaseland Australia subscribe đã chuyển ra scratchpad (tạo lại khi dựng); XML Sweden / Colombia ES cũ cần dựng lại nếu còn dùng. Premiere cần Refresh Media / mở lại project để nhận file mới.

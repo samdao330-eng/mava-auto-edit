@@ -554,13 +554,14 @@ connect(end_of_vo, lambda off: f'<video ref="{end_id}" lane="1" offset="{off}" n
 
 
 def placed_copy(src, motion, out):
-    """An overlay placed like the channel's template sequence: motion = scale %, centre x / y as
-    fractions of the frame. Baked into a full-frame alpha copy (with its sound) so every NLE
-    shows it the same way."""
+    """An overlay placed like the channel's template sequence: motion = scale % of the source file (as in
+    Premiere: a 1080p Subscribe at 200 % fills the 4K frame), centre x / y as fractions of the frame.
+    Baked into a full-frame alpha copy (with its sound) so every NLE shows it the same way."""
     if not os.path.exists(out):
         sc, cx, cy = motion
         os.makedirs(GEN, exist_ok=True)
-        w, h = int(3840 * sc / 100) // 2 * 2, int(2160 * sc / 100) // 2 * 2
+        pr = probe(src)
+        w, h = int(pr["w"] * sc / 100) // 2 * 2, int(pr["h"] * sc / 100) // 2 * 2
         x, y = int(3840 * cx - w / 2), int(2160 * cy - h / 2)
         # pad cannot place a frame partly outside the canvas: crop the overhang (transparent) first
         cl, ct = max(0, -x), max(0, -y)

@@ -63,9 +63,11 @@ _probe = {}
 
 def probe(path):
     if path not in _probe:
-        j = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration:stream=codec_type",
+        j = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries",
+                                       "format=duration:stream=codec_type,width,height",
                                        "-of", "json", path], capture_output=True, text=True).stdout)
-        _probe[path] = dict(dur=float(j["format"].get("duration", 0) or 0),
+        v = next((s for s in j.get("streams", []) if s["codec_type"] == "video"), {})
+        _probe[path] = dict(dur=float(j["format"].get("duration", 0) or 0), w=v.get("width"), h=v.get("height"),
                             audio=any(s["codec_type"] == "audio" for s in j.get("streams", [])))
     return _probe[path]
 
@@ -227,11 +229,12 @@ ending = os.path.join(TEMPLATE, LC["ending_file"])
 
 
 def placed_copy(src, motion, out):
-    """An overlay placed like the template sequence (scale %, centre x / y as fractions of the frame),
-    baked into a full-frame alpha copy with its sound."""
+    """An overlay placed like the template sequence (scale % of the source file, centre x / y as fractions of
+    the frame), baked into a full-frame alpha copy with its sound."""
     if not os.path.exists(out):
         sc, cx, cy = motion
-        w, h = int(3840 * sc / 100) // 2 * 2, int(2160 * sc / 100) // 2 * 2
+        pr = probe(src)
+        w, h = int(pr["w"] * sc / 100) // 2 * 2, int(pr["h"] * sc / 100) // 2 * 2
         x, y = int(3840 * cx - w / 2), int(2160 * cy - h / 2)
         cl, ct = max(0, -x), max(0, -y)
         cw, chh = min(w, 3840 - x) - cl, min(h, 2160 - y) - ct
