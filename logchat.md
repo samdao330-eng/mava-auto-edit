@@ -577,3 +577,11 @@ Nhật ký các lần làm việc. Append vào cuối, không ghi đè. Mỗi m�
 - **Sửa thêm (user: "Sửa 2 file đó"):** tạo lại tại chỗ `0-CHASELAND/TEST/260810 Chaseland - Sweden/.autoedit/subscribe.mov` (bbox 112–2225 / 1614–2095) và `0-TRIPINSIGHT/260414 Tripinsight - Colombia/ES/.autoedit/ending.mov` (PSNR so bản đúng = inf). Hai XML đó không dựng lại; `check` của chúng vẫn báo lỗi cũ có sẵn (pathurl mã hoá kiểu cũ, nhạc chồng 1 frame A3/A4) — không liên quan.
 - **Deploy:** không. Đã commit, chưa push.
 - **Còn lại:** chưa chạy `make test` cho sửa engine; Chaseland Australia subscribe đã chuyển ra scratchpad (tạo lại khi dựng); XML Sweden / Colombia ES cũ cần dựng lại nếu còn dùng. Premiere cần Refresh Media / mở lại project để nhận file mới.
+
+## 2026-10-30 10:50 — Đóng bản 2026.10.30.1 và push
+
+- **Yêu cầu:** "build source code" → user chọn: đóng bản + push.
+- **Đã làm:** `VERSION` 2026.10.22.1 → 2026.10.30.1. Push mava-auto-edit (`863fc46..b71647e`, gồm fill <4K, lower third 1 clip, sửa scale overlay). Chép bản mới (`git archive HEAD`) vào `AI-Support-Editor/mava-auto-edit/`, push `03455bd..5d3c877`.
+- **Kiểm thử:** không chạy lại (`make test` chưa chạy cho sửa scale overlay).
+- **Deploy:** không (chỉ push GitHub).
+- **Còn lại:** chạy `make test` khi tiện; trả `.xlsx` cho tập mẫu Chaseland.
